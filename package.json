@@ -1,0 +1,23 @@
+{
+  "name": "volunteer-volume",
+  "version": "1.0.0",
+  "description": "",
+  "homepage": "https://github.com/AgentCitrus/volunteer-volume#readme",
+  "bugs": {
+    "url": "https://github.com/AgentCitrus/volunteer-volume/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AgentCitrus/volunteer-volume.git"
+  },
+  "license": "ISC",
+  "author": "",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "create-next-app": "^15.2.4"
+  }
+}
