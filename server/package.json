@@ -18,8 +18,10 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
+    "cors": "^2.8.5",
     "create-next-app": "^15.2.4",
     "express": "^4.21.2",
-    "mongodb": "^6.15.0"
+    "mongodb": "^6.15.0",
+    "mongoose": "^8.13.1"
   }
 }
