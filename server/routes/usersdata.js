@@ -6,16 +6,37 @@ const {
     deleteUserData,
     updateUserData
 } = require('../controllers/userdataController')
+
+const {
+    getAllLogData,
+    getLogData,
+    addLogData,
+    deleteLogData,
+    updateLogData
+} = require('../controllers/logdataController')
+
 const router = express.Router();
 
-router.get('/', getAllUserData)
+//userdata
+router.get('/userdata', getAllUserData)
 
-router.get('/:id', getUserData)
+router.get('/userdata/:id', getUserData)
 
-router.post('/', addUserData)
+router.post('/userdata', addUserData)
 
-router.delete('/:id', deleteUserData)
+router.delete('/userdata/:id', deleteUserData)
 
-router.patch('/:id', updateUserData)
+router.patch('/userdata/:id', updateUserData)
+
+//logdata
+router.get('/logdata', getAllLogData)
+
+router.get('/logdata/:id', getLogData)
+
+router.post('/logdata', addLogData)
+
+router.delete('/logdata/:id', deleteLogData)
+
+router.patch('/logdata/:id', updateLogData)
 
 module.exports = router;
