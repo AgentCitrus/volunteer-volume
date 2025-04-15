@@ -38,12 +38,46 @@ const addUserData = async (req, res) => {
 }
 
 // delete
+const deleteUserData = async (req, res) => {
+    const { id } = req.params
+    if(!mongoose.Types.ObjectId.isValid(id)){
+        return res.status(404).json({error: 'No such user'})
+    }
+
+    const userdata = await userData.findOneAndDelete({_id: id})
+
+    if(!userdata){
+        return res.status(400).json({error: 'No such user'})
+    }
+
+    res.status(200).json(userData)
+
+}
 
 // update
+const updateUserData = async (req, res) => {
+    const { id } = req.params
+    if(!mongoose.Types.ObjectId.isValid(id)){
+        return res.status(404).json({error: 'No such user'})
+    }
+
+    const userdata = await userData.findOneAndUpdate({_id: id}, {
+        ...req.body
+    })
+
+    if(!userdata){
+        return res.status(400).json({error: 'No such user'})
+    }
+
+    res.status(200).json(userData)
+
+}
 
 
 module.exports = {
     getAllUserData,
     getUserData,
-    addUserData
+    addUserData,
+    deleteUserData,
+    updateUserData
 }
