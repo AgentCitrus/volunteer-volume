@@ -22,9 +22,17 @@ app.use((req,res,next)=>{
 //routes
 app.use('/api/userdata', userdataRoutes);
 
-app.listen(process.env.PORT, () => {
-    console.log('Listening on port ', process.env.PORT);
+//connect to db
+mongoose.connect(process.env.MONG_URI)
+.then(() => {
+    app.listen(process.env.PORT, () => {
+        console.log('Listening on port & connected to database', process.env.PORT);
+    })
 })
+.catch((error) => {
+    console.log(error)
+})
+
 
 
 
