@@ -2,7 +2,9 @@ const express = require('express');
 const {
     getAllUserData,
     getUserData,
-    addUserData
+    addUserData,
+    deleteUserData,
+    updateUserData
 } = require('../controllers/userdataController')
 const router = express.Router();
 
@@ -12,12 +14,8 @@ router.get('/:id', getUserData)
 
 router.post('/', addUserData)
 
-router.delete('/:id', (req, res) => {
-    res.json({mssg: 'DELETE some userdata'});
-})
+router.delete('/:id', deleteUserData)
 
-router.patch('/:id', (req, res) => {
-    res.json({mssg: 'PATCH some userdata'});
-})
+router.patch('/:id', updateUserData)
 
 module.exports = router;
