@@ -1,22 +1,23 @@
-// client/src/pages/login.j
 import { useState } from 'react'
-import { useRouter } from 'next/router'
+import { useNavigate } from 'react-router-dom'
 
 export default function LoginPage() {
   const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')
-  const router                  = useRouter()
+  const navigate                = useNavigate()
 
   async function handleSubmit(e) {
     e.preventDefault()
-    const res = await fetch('/api/auth/login', {
+    const res = await fetch('http://localhost:5000/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
       body: JSON.stringify({ email, password })
     })
     if (res.ok) {
-      router.replace('/clock')
+      const { user, token } = await res.json()
+      localStorage.setItem('token', token)      // store token for protected routes
+      navigate('/clock')                        // send them to clock page
     } else {
       alert('Login failed')
     }
@@ -24,39 +25,33 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <form
-        onSubmit={handleSubmit}
-        className="w-full max-w-sm bg-white p-8 rounded-lg shadow"
-      >
+      <form onSubmit={handleSubmit} className="w-full max-w-sm bg-white p-8 rounded shadow">
         <h2 className="text-2xl font-semibold mb-6 text-center">Sign In</h2>
-
         <label className="block mb-4">
-          <span className="text-gray-700">Email</span>
+          <span>Email</span>
           <input
             type="email"
             value={email}
             onChange={e => setEmail(e.target.value)}
-            className="mt-1 block w-full border border-gray-300 rounded px-3 py-2"
+            className="mt-1 block w-full border rounded p-2"
             placeholder="you@example.com"
             required
           />
         </label>
-
         <label className="block mb-6">
-          <span className="text-gray-700">Password</span>
+          <span>Password</span>
           <input
             type="password"
             value={password}
             onChange={e => setPassword(e.target.value)}
-            className="mt-1 block w-full border border-gray-300 rounded px-3 py-2"
-            placeholder="••••••••"
+            className="mt-1 block w-full border rounded p-2"
+            placeholder="••••••"
             required
           />
         </label>
-
         <button
           type="submit"
-          className="w-full py-2 bg-blue-600 text-white font-medium rounded hover:bg-blue-700"
+          className="w-full py-2 bg-blue-600 text-white rounded"
         >
           Login
         </button>
