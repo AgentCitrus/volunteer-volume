@@ -1,83 +1,63 @@
-const userData = require('../models/userdataModel')
-const mongoose = require('mongoose')
+// server/controllers/userdataController.js
+// — CRUD handlers for volunteer profile documents —
 
+const UserData = require('../models/userdataModel');
 
-// get all
-const getAllUserData = async (req, res) => {
-    const userdata = await userData.find({}).sort({createdAt: -1})
+/* GET /api/userdata  – list current user, or all if admin */
+exports.getAllUserData = async (req, res) => {
+  try {
+    const filter = req.user.role === 'admin' ? {} : { _id: req.user._id };
+    const users  = await UserData.find(filter).select('-passwordHash');
+    res.json(users);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
 
-    res.status(200).json(userdata)
-}
+/* GET /api/userdata/:id */
+exports.getUserData = async (req, res) => {
+  try {
+    const user = await UserData.findById(req.params.id).select('-passwordHash');
+    if (!user) return res.status(404).json({ error: 'Not found' });
+    res.json(user);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
 
-// get single
-const getUserData = async (req, res) => {
-    const { id } = req.params
+/* POST /api/userdata  – create a profile (admin only, typically) */
+exports.addUserData = async (req, res) => {
+  try {
+    const user = await UserData.create(req.body);
+    res.status(201).json(user);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
 
-    if(!mongoose.Types.ObjectId.isValid(id)){
-        return res.status(404).json({error: 'No such user'})
-    }
+/* PATCH /api/userdata/:id */
+exports.updateUserData = async (req, res) => {
+  try {
+    const user = await UserData.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true, runValidators: true }
+    ).select('-passwordHash');
 
-    const userdata = await userData.findById(id)
+    if (!user) return res.status(404).json({ error: 'Not found' });
+    res.json(user);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
 
-    if(!userdata){
-        return res.status(404).json({error: 'No user found'})
-    }
-
-    res.status(200).json(userdata)
-}
-
-// create new
-const addUserData = async (req, res) => {
-    const {firstName, lastName, birthday, phoneNumber, email, street, city, state, preferredContact, languagesSpoken, howHeard, otherOrganizations, disabilities, emergencyContact} = req.body
-    try {
-        const userdata = await userData.create({firstName, lastName, birthday, phoneNumber, email, street, city, state, preferredContact, languagesSpoken, howHeard, otherOrganizations, disabilities, emergencyContact})
-        res.status(200).json(userdata)
-    } catch (error){
-        res.status(400).json({error: error.message})
-    }
-}
-
-// delete
-const deleteUserData = async (req, res) => {
-    const { id } = req.params
-    if(!mongoose.Types.ObjectId.isValid(id)){
-        return res.status(404).json({error: 'No such user'})
-    }
-
-    const userdata = await userData.findOneAndDelete({_id: id})
-
-    if(!userdata){
-        return res.status(400).json({error: 'No such user'})
-    }
-
-    res.status(200).json(userData)
-
-}
-
-// update
-const updateUserData = async (req, res) => {
-    const { id } = req.params
-    if(!mongoose.Types.ObjectId.isValid(id)){
-        return res.status(404).json({error: 'No such user'})
-    }
-
-    const userdata = await userData.findOneAndUpdate({_id: id}, {
-        ...req.body
-    })
-
-    if(!userdata){
-        return res.status(400).json({error: 'No such user'})
-    }
-
-    res.status(200).json(userData)
-
-}
-
-
-module.exports = {
-    getAllUserData,
-    getUserData,
-    addUserData,
-    deleteUserData,
-    updateUserData
-}
+/* DELETE /api/userdata/:id */
+exports.deleteUserData = async (req, res) => {
+  try {
+    const user = await UserData.findByIdAndDelete(req.params.id);
+    if (!user) return res.status(404).json({ error: 'Not found' });
+    res.status(204).end();
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
