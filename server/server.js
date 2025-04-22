@@ -1,40 +1,46 @@
 // server/server.js
 require('dotenv').config()
-const express       = require('express')
-const cors          = require('cors')
-const morgan        = require('morgan')
-const cookieParser  = require('cookie-parser')
-const mongoose      = require('mongoose')
+
+const express      = require('express')
+const mongoose     = require('mongoose')
+const cors         = require('cors')
+const morgan       = require('morgan')
+const cookieParser = require('cookie-parser')
 
 const authRoutes      = require('./routes/auth')
 const usersdataRoutes = require('./routes/usersdata')
 
 const app = express()
 
-// Log all requests
+// 1. Logging incoming requests
 app.use(morgan('dev'))
 
-// Enable CORS for your React app (on port 3000)
+// 2. Enable CORS so your client at localhost:3000 can send cookies
 app.use(cors({
   origin:      'http://localhost:3000',
   credentials: true
 }))
 
-// Parse JSON bodies and cookies
+// 3. Parse JSON bodies & cookies
 app.use(express.json())
 app.use(cookieParser())
 
-// Mount routes
+// 4. Mount your routes
 app.use('/api/auth', authRoutes)
-app.use('/api', usersdataRoutes)
+app.use('/api',      usersdataRoutes)
 
-// Connect & start
+// 5. Connect to MongoDB & start the server
+const PORT = process.env.PORT || 5001
 mongoose.connect(process.env.MONG_URI, {
-  useNewUrlParser: true,
+  useNewUrlParser:    true,
   useUnifiedTopology: true
 })
 .then(() => {
-  const port = process.env.PORT || 5001
-  app.listen(port, () => console.log(`Server listening on port ${port}`))
+  app.listen(PORT, () => {
+    console.log(`Server listening on port ${PORT}`)
+  })
 })
-.catch(err => console.error('Mongo connection error:', err))
+.catch(err => {
+  console.error('Mongo connection error:', err)
+  process.exit(1)
+})
