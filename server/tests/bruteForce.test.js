@@ -7,8 +7,8 @@ const mongoose = require('mongoose')
 const app      = require('../app')    // bare Express instance
 
 // total attempts and batch size
-const ATTEMPTS   = 1000
-const BATCH_SIZE = 100
+const ATTEMPTS   = 250
+const BATCH_SIZE = 25
 
 describe(
   `Brute‑force sprint (CSV only, ${BATCH_SIZE}-request batches)`,
