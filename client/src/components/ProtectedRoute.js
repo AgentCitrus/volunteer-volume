@@ -1,6 +1,7 @@
 import { Navigate } from 'react-router-dom'
 
 export default function ProtectedRoute({ children }) {
-  const token = localStorage.getItem('token')
-  return token ? children : <Navigate to="/login" replace />
+  // we rely on the HttpOnly cookie; if you stored a token in localStorage, check that instead
+  const isAuth = document.cookie.includes('token=')
+  return isAuth ? children : <Navigate to="/login" replace />
 }

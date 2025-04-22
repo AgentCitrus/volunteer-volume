@@ -1,9 +1,9 @@
 import './App.css'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 
-import LoginPage      from './pages/LoginPage'
-import ClockPage      from './pages/ClockPage'
-import DashboardPage  from './pages/DashboardPage'
+import LoginPage     from './pages/login'
+import ClockPage     from './pages/clock'
+import DashboardPage from './pages/dashboard'
 import ProtectedRoute from './components/ProtectedRoute'
 
 function App() {
@@ -31,7 +31,7 @@ function App() {
           }
         />
 
-        {/* Fallback */}
+        {/* Redirect anything else to /login */}
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>
