@@ -1,19 +1,21 @@
-import './App.css'
+// client/src/App.js
+import React from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 
-import LoginPage     from './pages/login'
-import ClockPage     from './pages/clock'
-import DashboardPage from './pages/dashboard'
+import LoginPage      from './pages/login'
+import RegisterPage   from './pages/register'
+import ClockPage      from './pages/clock'
+import DashboardPage  from './pages/dashboard'
 import ProtectedRoute from './components/ProtectedRoute'
-import RegisterPage from './pages/register'
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
         {/* Public */}
-        <Route path="/login" element={<LoginPage />} />
+        <Route path="/login"    element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+
         {/* Protected */}
         <Route
           path="/clock"
@@ -32,7 +34,7 @@ function App() {
           }
         />
 
-        {/* Redirect anything else to /login */}
+        {/* Catch‑all → redirect to /login */}
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>

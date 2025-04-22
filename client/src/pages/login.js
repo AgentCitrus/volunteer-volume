@@ -21,6 +21,7 @@ export default function LoginPage() {
       })
 
       if (res.ok) {
+        // **Redirect to /clock on success**
         navigate('/clock')
       } else if (res.status === 401) {
         setError('Invalid email or password.')
@@ -34,13 +35,11 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
       <form onSubmit={handleSubmit} className="w-full max-w-sm bg-white p-8 rounded shadow">
         <h2 className="text-2xl font-semibold mb-4 text-center">Sign In</h2>
 
-        {error && (
-          <div className="mb-4 text-red-600 text-sm text-center">{error}</div>
-        )}
+        {error && <p className="mb-4 text-red-600 text-center">{error}</p>}
 
         <label className="block mb-4">
           <span className="text-gray-700">Email</span>

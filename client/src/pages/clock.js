@@ -1,19 +1,117 @@
 // client/src/pages/clock.js
+import React, { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+
 export default function ClockPage() {
-    return (
-      <div className="p-8">
-        <h1 className="text-2xl mb-4">Clock‑In / Clock‑Out</h1>
-        {/* Your clock UI here */}
-      </div>
-    )
+  const navigate = useNavigate()
+  const [checkInTime, setCheckInTime] = useState(null)
+  const [desc, setDesc]               = useState('')
+  const [error, setError]             = useState('')
+  const [loading, setLoading]         = useState(false)
+
+  // on mount, load any pending check‑in
+  useEffect(() => {
+    const stored = localStorage.getItem('currentCheckIn')
+    if (stored) setCheckInTime(new Date(stored))
+  }, [])
+
+  // user clicks “Check In”
+  const handleCheckIn = () => {
+    const now = new Date()
+    localStorage.setItem('currentCheckIn', now.toISOString())
+    setCheckInTime(now)
+    setError('')
   }
-  
-  // runs **server‑side** on every request
-  export async function getServerSideProps({ req }) {
-    const token = req.cookies?.token
-    if (!token) {
-      return { redirect: { destination: '/login', permanent: false } }
+
+  // user clicks “Check Out”
+  const handleCheckOut = async () => {
+    setError('')
+    if (desc.trim().length < 75) {
+      setError('Description must be at least 75 characters.')
+      return
     }
-    return { props: {} }
+    setLoading(true)
+    try {
+      const res = await fetch('http://localhost:5001/api/logdata', {
+        method: 'POST',
+        credentials: 'include',               // send HttpOnly cookie
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          checkIn:   checkInTime.toISOString(),
+          checkOut:  new Date().toISOString(),
+          tasksDesc: desc
+        })
+      })
+      if (res.ok) {
+        localStorage.removeItem('currentCheckIn')
+        setCheckInTime(null)
+        setDesc('')
+        alert('Checked out successfully!')
+      } else {
+        const data = await res.json()
+        setError(data.error || `Error ${res.status}`)
+      }
+    } catch {
+      setError('Network error. Please try again.')
+    }
+    setLoading(false)
   }
-  
+
+  return (
+    <div className="min-h-screen bg-gray-50 p-4">
+      {/* Header with hamburger menu */}
+      <header className="flex items-center mb-6">
+        <button
+          onClick={() => navigate('/dashboard')}
+          className="text-2xl mr-4"
+          aria-label="Menu"
+        >
+          ☰
+        </button>
+        <h1 className="text-xl font-semibold">Time Clock</h1>
+      </header>
+
+      {/* Main panel */}
+      <main className="max-w-md mx-auto bg-white p-6 rounded shadow">
+        {error && (
+          <p className="mb-4 text-red-600 text-center">{error}</p>
+        )}
+
+        {!checkInTime ? (
+          /* CHECK IN BUTTON */
+          <button
+            onClick={handleCheckIn}
+            className="w-full py-3 bg-green-600 text-white rounded hover:bg-green-700"
+          >
+            Check In
+          </button>
+        ) : (
+          /* CHECK OUT FORM */
+          <>
+            <p className="mb-4">
+              Checked in at <strong>{checkInTime.toLocaleString()}</strong>
+            </p>
+
+            <label className="block mb-2 font-medium">
+              What did you do? (min 75 chars)
+            </label>
+            <textarea
+              value={desc}
+              onChange={e => setDesc(e.target.value)}
+              className="w-full h-28 p-2 border rounded mb-4"
+              placeholder="Describe your activities…"
+            />
+
+            <button
+              onClick={handleCheckOut}
+              disabled={loading}
+              className="w-full py-3 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+            >
+              {loading ? 'Submitting…' : 'Check Out'}
+            </button>
+          </>
+        )}
+      </main>
+    </div>
+  )
+}
