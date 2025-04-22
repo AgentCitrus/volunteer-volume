@@ -18,7 +18,8 @@ app.use(morgan('dev'))
 // 2. Enable CORS so your client at localhost:3000 can send cookies
 app.use(cors({
   origin:      'http://localhost:3000',
-  credentials: true
+  credentials: true,
+  allowedHeaders: ['Content-Type', 'Authorization']
 }))
 
 // 3. Parse JSON bodies & cookies
