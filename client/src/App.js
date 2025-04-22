@@ -5,6 +5,7 @@ import LoginPage     from './pages/login'
 import ClockPage     from './pages/clock'
 import DashboardPage from './pages/dashboard'
 import ProtectedRoute from './components/ProtectedRoute'
+import RegisterPage from './pages/register'
 
 function App() {
   return (
@@ -12,7 +13,7 @@ function App() {
       <Routes>
         {/* Public */}
         <Route path="/login" element={<LoginPage />} />
-
+        <Route path="/register" element={<RegisterPage />} />
         {/* Protected */}
         <Route
           path="/clock"

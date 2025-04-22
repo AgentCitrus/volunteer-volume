@@ -6,7 +6,10 @@ const authRoutes      = require('./routes/auth');
 const usersdataRoutes = require('./routes/usersdata');
 
 const app = express();
-app.use(cors());
+app.use(cors({
+  origin: 'http://localhost:3000',  // your CRA dev server
+  credentials: true                // <— allow cookies to be sent
+  }))
 app.use(express.json());
 
 // AUTH (register & login)

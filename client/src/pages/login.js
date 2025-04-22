@@ -1,4 +1,5 @@
-import { useState } from 'react'
+// client/src/pages/login.js
+import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 export default function LoginPage() {
@@ -9,39 +10,44 @@ export default function LoginPage() {
 
   async function handleSubmit(e) {
     e.preventDefault()
-    setError('')  // clear previous
+    setError('')
 
-    const res = await fetch('http://localhost:5000/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ email, password })
-    })
+    try {
+      const res = await fetch('http://localhost:5001/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ email, password })
+      })
 
-    if (res.ok) {
-      navigate('/clock')
-    } else if (res.status === 401) {
-      setError('Invalid email or password.')
-    } else {
-      setError('Unexpected error—please try again later.')
+      if (res.ok) {
+        navigate('/clock')
+      } else if (res.status === 401) {
+        setError('Invalid email or password.')
+      } else {
+        const data = await res.json()
+        setError(data.error || `Error ${res.status}`)
+      }
+    } catch (err) {
+      setError('Network error. Check your connection and try again.')
     }
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-50">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <form onSubmit={handleSubmit} className="w-full max-w-sm bg-white p-8 rounded shadow">
         <h2 className="text-2xl font-semibold mb-4 text-center">Sign In</h2>
 
         {error && (
-          <p className="mb-4 text-red-600 text-sm text-center">{error}</p>
+          <div className="mb-4 text-red-600 text-sm text-center">{error}</div>
         )}
 
         <label className="block mb-4">
-          <span>Email</span>
+          <span className="text-gray-700">Email</span>
           <input
             type="email"
             value={email}
-            onChange={e => setEmail(e.target.value)}
+            onChange={e => { setEmail(e.target.value); setError('') }}
             className="mt-1 block w-full border rounded p-2"
             placeholder="you@example.com"
             required
@@ -49,23 +55,30 @@ export default function LoginPage() {
         </label>
 
         <label className="block mb-6">
-          <span>Password</span>
+          <span className="text-gray-700">Password</span>
           <input
             type="password"
             value={password}
-            onChange={e => setPassword(e.target.value)}
+            onChange={e => { setPassword(e.target.value); setError('') }}
             className="mt-1 block w-full border rounded p-2"
-            placeholder="••••••"
+            placeholder="••••••••"
             required
           />
         </label>
 
         <button
           type="submit"
-          className="w-full py-2 bg-blue-600 text-white rounded"
+          className="w-full py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
         >
           Login
         </button>
+
+        <p className="mt-4 text-center text-sm">
+          Don’t have an account?{' '}
+          <a href="/register" className="text-blue-600 hover:underline">
+            Create one
+          </a>
+        </p>
       </form>
     </div>
   )
