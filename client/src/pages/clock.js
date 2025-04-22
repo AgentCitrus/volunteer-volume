@@ -9,13 +9,15 @@ export default function ClockPage() {
   const [error, setError]             = useState('')
   const [loading, setLoading]         = useState(false)
 
-  // on mount, load any pending check‑in
+  // On mount, load any pending check‑in
   useEffect(() => {
     const stored = localStorage.getItem('currentCheckIn')
     if (stored) setCheckInTime(new Date(stored))
   }, [])
 
-  // user clicks “Check In”
+  // Helper to grab the JWT
+  const getToken = () => localStorage.getItem('token')
+
   const handleCheckIn = () => {
     const now = new Date()
     localStorage.setItem('currentCheckIn', now.toISOString())
@@ -23,7 +25,6 @@ export default function ClockPage() {
     setError('')
   }
 
-  // user clicks “Check Out”
   const handleCheckOut = async () => {
     setError('')
     if (desc.trim().length < 75) {
@@ -31,17 +32,28 @@ export default function ClockPage() {
       return
     }
     setLoading(true)
+
+    const token = getToken()
+    if (!token) {
+      setError('Not authenticated. Please log in again.')
+      setLoading(false)
+      return
+    }
+
     try {
       const res = await fetch('http://localhost:5001/api/logdata', {
         method: 'POST',
-        credentials: 'include',               // send HttpOnly cookie
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type':  'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({
           checkIn:   checkInTime.toISOString(),
           checkOut:  new Date().toISOString(),
           tasksDesc: desc
         })
       })
+
       if (res.ok) {
         localStorage.removeItem('currentCheckIn')
         setCheckInTime(null)
@@ -59,7 +71,6 @@ export default function ClockPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
-      {/* Header with hamburger menu */}
       <header className="flex items-center mb-6">
         <button
           onClick={() => navigate('/dashboard')}
@@ -71,14 +82,12 @@ export default function ClockPage() {
         <h1 className="text-xl font-semibold">Time Clock</h1>
       </header>
 
-      {/* Main panel */}
       <main className="max-w-md mx-auto bg-white p-6 rounded shadow">
         {error && (
           <p className="mb-4 text-red-600 text-center">{error}</p>
         )}
 
         {!checkInTime ? (
-          /* CHECK IN BUTTON */
           <button
             onClick={handleCheckIn}
             className="w-full py-3 bg-green-600 text-white rounded hover:bg-green-700"
@@ -86,7 +95,6 @@ export default function ClockPage() {
             Check In
           </button>
         ) : (
-          /* CHECK OUT FORM */
           <>
             <p className="mb-4">
               Checked in at <strong>{checkInTime.toLocaleString()}</strong>

@@ -21,15 +21,16 @@ export default function LoginPage() {
       })
 
       if (res.ok) {
-        // **Redirect to /clock on success**
-        navigate('/clock')
+        const data = await res.json()
+        localStorage.setItem('token', data.token)   // store JWT
+        navigate('/clock')                          // redirect to Clock
       } else if (res.status === 401) {
         setError('Invalid email or password.')
       } else {
         const data = await res.json()
         setError(data.error || `Error ${res.status}`)
       }
-    } catch (err) {
+    } catch {
       setError('Network error. Check your connection and try again.')
     }
   }

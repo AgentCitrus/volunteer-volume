@@ -1,26 +1,36 @@
 // server/middleware/auth.js
-const jwt  = require('jsonwebtoken')
-const User = require('../models/userdataModel')
+const jwt      = require('jsonwebtoken')
+const UserData = require('../models/userdataModel')
 
 module.exports = async (req, res, next) => {
-  try {
-    // 1. Pull token from header or cookie
-    let token = null
-    if (req.headers.authorization?.startsWith('Bearer ')) {
-      token = req.headers.authorization.split(' ')[1]
-    } else if (req.cookies?.token) {
-      token = req.cookies.token
-    }
-    if (!token) throw new Error('No token')
+  // Debug: log incoming Authorization header
+  console.log('Auth header:', req.headers.authorization)
 
-    // 2. Verify & decode
+  // 1) Extract token
+  let token = null
+  if (req.headers.authorization?.startsWith('Bearer ')) {
+    token = req.headers.authorization.split(' ')[1]
+  } else if (req.cookies?.token) {
+    token = req.cookies.token
+  }
+
+  if (!token) {
+    console.error('No token provided')
+    return res.status(401).json({ error: 'Authentication required' })
+  }
+
+  // 2) Verify & attach user
+  try {
     const payload = jwt.verify(token, process.env.JWT_SECRET)
-    // 3. Attach user to req
-    const user = await User.findById(payload._id).select('-passwordHash')
+    const user = await UserData
+      .findById(payload._id)
+      .select('-passwordHash')
     if (!user) throw new Error('User not found')
+
     req.user = user
     next()
   } catch (err) {
+    console.error('Auth error:', err.message)
     res.status(401).json({ error: 'Authentication required' })
   }
 }
