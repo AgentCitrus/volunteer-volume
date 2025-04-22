@@ -95,7 +95,7 @@ const userdataSchema = new Schema({
   },
   role: {
     type: String,
-    enum: ['volunteer', 'coordinator', 'admin'],
+    enum: ['volunteer', 'admin'],
     default: 'volunteer'
   }
 }, {
