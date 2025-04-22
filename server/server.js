@@ -1,41 +1,24 @@
 require('dotenv').config();
-
-const express = require('express');
-const mongoose = require('mongoose');
-const jwt = require('jsonwebtoken');
-const cors = require('cors');
+const express         = require('express');
+const mongoose        = require('mongoose');
+const cors            = require('cors');
+const authRoutes      = require('./routes/auth');
 const usersdataRoutes = require('./routes/usersdata');
-const authRoutes = require('./routes/auth')
-
-
 
 const app = express();
-
 app.use(cors());
 app.use(express.json());
 
-app.use('/api/auth', authRoutes)
+// AUTH (register & login)
+app.use('/api/auth', authRoutes);
 
-app.use((req,res,next)=>{
-    console.log(req.path, req.method);
-    next();
-})
+// DATA (user & log CRUD)
+app.use('/api', usersdataRoutes);
 
-//routes
-app.use('/api/usersdata', usersdataRoutes);
-
-//connect to db
 mongoose.connect(process.env.MONG_URI)
-.then(() => {
-    app.listen(process.env.PORT, () => {
-        console.log('Listening on port & connected to database', process.env.PORT);
+  .then(() => {
+    app.listen(process.env.PORT || 5000, () => {
+      console.log('Server listening on port', process.env.PORT || 5000);
     })
-})
-.catch((error) => {
-    console.log(error)
-})
-
-
-
-
-
+  })
+  .catch(err => console.error(err));
