@@ -1,83 +1,88 @@
-const logData = require('../models/logdataModel')
-const mongoose = require('mongoose')
+// server/controllers/logdataController.js
+const LogData = require('../models/logdataModel')
 
-
-// get all
-const getAllLogData = async (req, res) => {
-    const logdata = await logData.find({}).sort({createdAt: -1})
-
-    res.status(200).json(logdata)
+// Helper to check ownership or admin
+function ensureCanAccess(entry, user) {
+  // If you’re admin, anything goes
+  if (user.role === 'admin') return true
+  // Otherwise, you must own it
+  return entry.user.toString() === user._id.toString()
 }
 
-// get single
-const getLogData = async (req, res) => {
-    const { id } = req.params
-
-    if(!mongoose.Types.ObjectId.isValid(id)){
-        return res.status(404).json({error: 'No such log'})
+exports.getAllLogData = async (req, res) => {
+  try {
+    let logs
+    if (req.user.role === 'admin') {
+      // Admin sees everything
+      logs = await LogData.find().sort('-createdAt')
+    } else {
+      // Volunteers only see their own
+      logs = await LogData.find({ user: req.user._id }).sort('-createdAt')
     }
-
-    const logdata = await logData.findById(id)
-
-    if(!logdata){
-        return res.status(404).json({error: 'No such log'})
-    }
-
-    res.status(200).json(logdata)
+    res.json(logs)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
 }
 
-// create new
-const addLogData = async (req, res) => {
-    const {checkIn, checkOut, tasksDesc} = req.body
-    try {
-        const logdata = await logData.create({checkIn, checkOut, tasksDesc})
-        res.status(200).json(logdata)
-    } catch (error){
-        res.status(400).json({error: error.message})
+exports.getLogData = async (req, res) => {
+  try {
+    const entry = await LogData.findById(req.params.id)
+    if (!entry) return res.status(404).json({ error: 'Not found' })
+
+    if (!ensureCanAccess(entry, req.user)) {
+      return res.status(403).json({ error: 'Forbidden' })
     }
+
+    res.json(entry)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
 }
 
-// delete
-const deleteLogData = async (req, res) => {
-    const { id } = req.params
-    if(!mongoose.Types.ObjectId.isValid(id)){
-        return res.status(404).json({error: 'No such log'})
-    }
-
-    const logdata = await logData.findOneAndDelete({_id: id})
-
-    if(!logdata){
-        return res.status(400).json({error: 'No such log'})
-    }
-
-    res.status(200).json(logdata)
-
-}
-
-// update
-const updateLogData = async (req, res) => {
-    const { id } = req.params
-    if(!mongoose.Types.ObjectId.isValid(id)){
-        return res.status(404).json({error: 'No such log'})
-    }
-
-    const logdata = await logData.findOneAndUpdate({_id: id}, {
-        ...req.body
+exports.addLogData = async (req, res) => {
+  try {
+    const entry = await LogData.create({
+      user:     req.user._id,
+      checkIn:  req.body.checkIn,
+      checkOut: req.body.checkOut,
+      tasksDesc:req.body.tasksDesc
     })
-
-    if(!logdata){
-        return res.status(400).json({error: 'No such log'})
-    }
-
-    res.status(200).json(logdata)
-
+    res.status(201).json(entry)
+  } catch (err) {
+    res.status(400).json({ error: err.message })
+  }
 }
 
+exports.updateLogData = async (req, res) => {
+  try {
+    const entry = await LogData.findById(req.params.id)
+    if (!entry) return res.status(404).json({ error: 'Not found' })
 
-module.exports = {
-    getAllLogData,
-    getLogData,
-    addLogData,
-    deleteLogData,
-    updateLogData
+    if (!ensureCanAccess(entry, req.user)) {
+      return res.status(403).json({ error: 'Forbidden' })
+    }
+
+    Object.assign(entry, req.body)
+    await entry.save()
+    res.json(entry)
+  } catch (err) {
+    res.status(400).json({ error: err.message })
+  }
+}
+
+exports.deleteLogData = async (req, res) => {
+  try {
+    const entry = await LogData.findById(req.params.id)
+    if (!entry) return res.status(404).json({ error: 'Not found' })
+
+    if (!ensureCanAccess(entry, req.user)) {
+      return res.status(403).json({ error: 'Forbidden' })
+    }
+
+    await entry.remove()
+    res.status(204).end()
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
 }

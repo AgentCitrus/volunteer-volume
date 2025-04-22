@@ -5,6 +5,8 @@ const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
 const cors = require('cors');
 const usersdataRoutes = require('./routes/usersdata');
+const authRoutes = require('./routes/auth')
+
 
 
 const app = express();
@@ -12,8 +14,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-
-app.use(express.json())
+app.use('/api/auth', authRoutes)
 
 app.use((req,res,next)=>{
     console.log(req.path, req.method);

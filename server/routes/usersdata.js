@@ -1,4 +1,5 @@
 const express = require('express');
+const auth = require('../middleware/auth')
 const {
     getAllUserData,
     getUserData,
@@ -18,7 +19,7 @@ const {
 const router = express.Router();
 
 //userdata
-router.get('/userdata', getAllUserData)
+router.get('/userdata', auth, getAllUserData)
 
 router.get('/userdata/:id', getUserData)
 
@@ -33,7 +34,7 @@ router.get('/logdata', getAllLogData)
 
 router.get('/logdata/:id', getLogData)
 
-router.post('/logdata', addLogData)
+router.post('/logdata', auth, addLogData)
 
 router.delete('/logdata/:id', deleteLogData)
 
