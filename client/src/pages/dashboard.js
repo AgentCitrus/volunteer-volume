@@ -9,7 +9,7 @@ export default function DashboardPage() {
   }
   
   export async function getServerSideProps({ req }) {
-    const token = req.cookies.token
+    const token = req.cookies?.token
     if (!token) {
       return { redirect: { destination: '/login', permanent: false } }
     }

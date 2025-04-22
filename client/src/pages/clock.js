@@ -10,12 +10,10 @@ export default function ClockPage() {
   
   // runs **server‑side** on every request
   export async function getServerSideProps({ req }) {
-    const token = req.cookies.token
+    const token = req.cookies?.token
     if (!token) {
-      // not signed in → redirect to login
       return { redirect: { destination: '/login', permanent: false } }
     }
-    // you could optionally fetch initial data here…
     return { props: {} }
   }
   
