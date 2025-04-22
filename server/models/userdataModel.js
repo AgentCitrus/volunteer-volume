@@ -1,120 +1,105 @@
+// server/models/userdataModel.js
 const mongoose = require('mongoose')
-
-const Schema = mongoose.Schema
+const { Schema } = mongoose
 
 const userdataSchema = new Schema({
-    firstName: {
-        type: String,
-        required: [true, 'First name is required'],
-        trim: true
+  // — Your existing profile fields —
+  firstName: {
+    type: String,
+    required: [true, 'First name is required'],
+    trim: true
+  },
+  lastName: {
+    type: String,
+    required: [true, 'Last name is required'],
+    trim: true
+  },
+  birthday: {
+    type: Date,
+    required: [true, 'Birthday is required']
+  },
+  phoneNumber: {
+    type: String,
+    required: [true, 'Phone number is required'],
+    match: [/^\d{10}$/, 'Phone number must be exactly 10 digits'],
+    trim: true
+  },
+  street: {
+    type: String,
+    required: [true, 'Street is required'],
+    trim: true
+  },
+  city: {
+    type: String,
+    required: [true, 'City is required'],
+    trim: true
+  },
+  state: {
+    type: String,
+    required: [true, 'State is required'],
+    trim: true
+  },
+  preferredContact: {
+    type: String,
+    enum: ['email', 'phone'],
+    default: 'email'
+  },
+  languagesSpoken: {
+    type: [String],
+    default: []
+  },
+  howHeard: {
+    type: String,
+    trim: true,
+    default: ''
+  },
+  otherOrganizations: {
+    type: [String],
+    default: []
+  },
+  disabilities: {
+    type: String,
+    trim: true,
+    default: ''
+  },
+  emergencyContact: {
+    name: {
+      type: String,
+      required: [true, 'Emergency contact name is required'],
+      trim: true
     },
-    lastName: {
-        type: String,
-        required: [true, 'Last name is required'],
-        trim: true
+    phone: {
+      type: String,
+      required: [true, 'Emergency contact phone is required'],
+      match: [/^\d{10}$/, 'Must be 10 digits'],
+      trim: true
     },
-    birthday: {
-        type: Date,
-        required: [true, 'Birthday is required'],
-        validator: function(value){
-            return value <= new Date();
-        },
-        message: 'Birthday cannot be in the future'
-    },
-    phoneNumber: {
-        type: String,
-        match: [/^\d{10}$/, 'Phone number must be exactly 10 digits'],
-        trim: true,
-        required: [true, 'Phone number is required']
-    },
-    email: {
-        type: String,
-        match: [/.+@.+\..+/, 'Invalid email format'],
-        trim: true,
-        required: [true, 'Email is required']
-    },
-    street: {
-        type: String,
-        trim: true,
-        required: [true, 'Street is required']
-    },
-    city: {
-        type: String,
-        trim: true,
-        required: [true, 'City is required']
-    },
-    state: {
-        type: String,
-        trim: true,
-        required: [true, 'State is required'],
-        enum: {
-            values: [
-              'AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA',
-              'HI','ID','IL','IN','IA','KS','KY','LA','ME','MD',
-              'MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ',
-              'NM','NY','NC','ND','OH','OK','OR','PA','RI','SC',
-              'SD','TN','TX','UT','VT','VA','WA','WV','WI','WY'
-            ],
-            message: '{VALUE} is not a valid U.S. state abbreviation'
-          }
-    },
-    preferredContact: {
-        type: String,
-        enum: {
-          values: ['email', 'phone', 'text', 'any'],
-          message: '{VALUE} is not a valid contact method (email, phone, text, any)'
-        },
-        lowercase: true,
-        trim: true,
-        required: [true, 'Contact preference is required']
-    },
-    languagesSpoken: {
-        type: [String],
-        default: [],
-        trim: true
-    },
-    howHeard: {
-        type: String,
-        default: "N/A",
-        trim: true,
-        maxLength: 50
-    },
-    otherOrganizations: {
-        type: [String],
-        default: [],
-        trim: true,
-        maxLength: [15, 'Too many (15 max)']
-    },
-    disabilities: {
-        type: [String],
-        default: [],
-        trim: true
-    },
-    emergencyContact: {
-        firstName: {
-            type: String,
-            required: [true, 'First name is required'],
-            trim: true
-        },
-        lastName: {
-            type: String,
-            required: [true, 'Last name is required'],
-            trim: true
-        },
-        phoneNumber: {
-            type: String,
-            match: [/^\d{10}$/, 'Phone number must be exactly 10 digits'],
-            trim: true,
-            required: [true, 'Phone number is required']
-        },
-        relationship: {
-            type: String,
-            trim: true,
-            default: 'N/A'
-        }
-
+    relationship: {
+      type: String,
+      required: [true, 'Relationship is required'],
+      trim: true
     }
-}, {timestamps: true})
+  },
 
-module.exports = mongoose.model('userdata', userdataSchema)
+  // — New auth fields —
+  email: {
+    type: String,
+    required: [true, 'Email is required'],
+    unique: true,
+    lowercase: true,
+    trim: true
+  },
+  passwordHash: {
+    type: String,
+    required: [true, 'Password is required']
+  },
+  role: {
+    type: String,
+    enum: ['volunteer', 'coordinator', 'admin'],
+    default: 'volunteer'
+  }
+}, {
+  timestamps: true
+})
 
+module.exports = mongoose.model('UserData', userdataSchema)
