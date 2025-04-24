@@ -10,10 +10,21 @@ const app      = require('../app')    // bare Express instance
 const ATTEMPTS   = 250
 const BATCH_SIZE = 25
 
+// generate a random alphanumeric password of length between min and max
+function randomPwd(min = 8, max = 20) {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+  const length = Math.floor(Math.random() * (max - min + 1)) + min
+  let pwd = ''
+  for (let i = 0; i < length; i++) {
+    pwd += chars.charAt(Math.floor(Math.random() * chars.length))
+  }
+  return pwd
+}
+
 describe(
-  `Brute‑force sprint (CSV only, ${BATCH_SIZE}-request batches)`,
+  `Brute-force sprint (CSV only, ${BATCH_SIZE}-request batches, random passwords)`,
   () => {
-    it(`runs ${ATTEMPTS} failed logins in parallel batches and exports CSV`, async () => {
+    it(`runs ${ATTEMPTS} failed logins with random passwords and exports CSV`, async () => {
       const results = []
 
       for (let i = 0; i < ATTEMPTS; i += BATCH_SIZE) {
@@ -27,11 +38,12 @@ describe(
           const attemptNo = i + j + 1
           batch.push((async () => {
             const t0 = Date.now()
+            const pwd = randomPwd(8, 20)
             const res = await request(app)
               .post('/api/auth/login')
               .send({
                 email:    'admin@example.com',
-                password: 'wrong-password'
+                password: pwd
               })
             return {
               attempt: attemptNo,
