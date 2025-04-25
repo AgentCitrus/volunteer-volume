@@ -1,91 +1,73 @@
-const LogData = require('../models/logdataModel');
+const LogData = require('../models/logdataModel')
 
-/* ───────────  POST /api/logdata  ───────────  */
 exports.addLogData = async (req, res) => {
   try {
-    const { checkIn, checkOut, tasksDesc } = req.body;
-
+    const { checkIn, checkOut, tasksDesc } = req.body
     const entry = await LogData.create({
-      user: req.user._id,
-      checkIn,
-      checkOut,
+      user:      req.user._id,
+      checkIn:   new Date(checkIn),
+      checkOut:  new Date(checkOut),
       tasksDesc
-    });
-
-    res.status(201).json(entry);
+    })
+    res.status(201).json(entry)
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(400).json({ error: err.message })
   }
-};
+}
 
-/* ───────────  GET /api/logdata  ───────────  */
 exports.getAllLogData = async (req, res) => {
   try {
     const filter = req.user.role === 'admin'
       ? {}
-      : { user: req.user._id };
-
+      : { user: req.user._id }
     const logs = await LogData.find(filter)
       .populate('user', 'firstName lastName email')
-      .sort('-createdAt');
-
-    res.json(logs);
+      .sort('-createdAt')
+    res.json(logs)
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: err.message })
   }
-};
+}
 
-/* ───────────  GET /api/logdata/:id  ───────────  */
 exports.getLogData = async (req, res) => {
   try {
     const log = await LogData.findById(req.params.id)
-      .populate('user', 'firstName lastName email');
-
-    if (!log) return res.status(404).json({ error: 'Not found' });
-    if (req.user.role !== 'admin' && log.user._id.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ error: 'Forbidden' });
-    }
-
-    res.json(log);
+      .populate('user', 'firstName lastName email')
+    if (!log) return res.status(404).json({ error: 'Not found' })
+    if (req.user.role !== 'admin' && log.user._id.toString() !== req.user._id.toString())
+      return res.status(403).json({ error: 'Forbidden' })
+    res.json(log)
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: err.message })
   }
-};
+}
 
-/* ───────────  PATCH /api/logdata/:id  ───────────  */
 exports.updateLogData = async (req, res) => {
   try {
-    const log = await LogData.findById(req.params.id);
-    if (!log) return res.status(404).json({ error: 'Not found' });
-    if (req.user.role !== 'admin' && log.user.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ error: 'Forbidden' });
-    }
-
-    const { checkIn, checkOut, tasksDesc } = req.body;
-    log.checkIn = checkIn;
-    log.checkOut = checkOut;
-    log.tasksDesc = tasksDesc;
-    await log.save();
-
-    const updated = await LogData.findById(log._id)
-      .populate('user', 'firstName lastName email');
-    res.json(updated);
+    const { checkIn, checkOut, tasksDesc } = req.body
+    const log = await LogData.findById(req.params.id)
+    if (!log) return res.status(404).json({ error: 'Not found' })
+    if (req.user.role !== 'admin' && log.user.toString() !== req.user._id.toString())
+      return res.status(403).json({ error: 'Forbidden' })
+    if (checkIn)   log.checkIn   = new Date(checkIn)
+    if (checkOut)  log.checkOut  = new Date(checkOut)
+    if (tasksDesc) log.tasksDesc = tasksDesc
+    await log.save()
+    res.json(log)
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(400).json({ error: err.message })
   }
-};
+}
 
-/* ───────────  DELETE /api/logdata/:id  ───────────  */
 exports.deleteLogData = async (req, res) => {
   try {
-    const log = await LogData.findById(req.params.id);
-    if (!log) return res.status(404).json({ error: 'Not found' });
-    if (req.user.role !== 'admin' && log.user.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ error: 'Forbidden' });
-    }
-    await log.deleteOne();
-    res.status(204).end();
+    const log = await LogData.findById(req.params.id)
+    if (!log) return res.status(404).json({ error: 'Not found' })
+    if (req.user.role !== 'admin' && log.user.toString() !== req.user._id.toString())
+      return res.status(403).json({ error: 'Forbidden' })
+    await log.deleteOne()
+    res.status(204).end()
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: err.message })
   }
-};
+}

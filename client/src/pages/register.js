@@ -16,42 +16,24 @@ const fieldLabels = {
   howHeard: 'How You Heard About Us',
   otherOrganizations: 'Other Organizations',
   disabilities: 'Disabilities',
-  'emergencyContact.name': 'Emergency Contact Name',
-  'emergencyContact.phone': 'Emergency Contact Phone',
-  'emergencyContact.relationship': 'Emergency Contact Relationship',
   email: 'Email',
   password: 'Password'
-}
-
-function formatError(field, msg) {
-  if (/required/i.test(msg)) {
-    return `${fieldLabels[field]} is required.`
-  }
-  return msg
 }
 
 export default function RegisterPage() {
   const navigate = useNavigate()
   const [form, setForm] = useState({
-    firstName: '',
-    lastName: '',
-    birthday: '',
-    street: '',
-    city: '',
-    state: '',
-    phoneNumber: '',
-    preferredContact: '',
-    languagesSpoken: '',
-    howHeard: '',
-    otherOrganizations: '',
-    disabilities: '',
+    firstName: '', lastName: '', birthday: '',
+    street: '', city: '', state: '',
+    phoneNumber: '', preferredContact: '',
+    languagesSpoken: '', howHeard: '',
+    otherOrganizations: '', disabilities: '',
     emergencyContact: { name: '', phone: '', relationship: '' },
-    email: '',
-    password: ''
+    email: '', password: ''
   })
-  const [errors, setErrors]   = useState({})
-  const [loading, setLoading] = useState(false)
+  const [errors, setErrors] = useState({})
   const [globalErr, setGlobalErr] = useState('')
+  const [loading, setLoading] = useState(false)
 
   const handleChange = e => {
     const { name, value } = e.target
@@ -61,25 +43,39 @@ export default function RegisterPage() {
         ...f,
         emergencyContact: { ...f.emergencyContact, [key]: value }
       }))
+      setErrors(errs => ({ ...errs, [`emergencyContact.${key}`]: undefined }))
     } else {
       setForm(f => ({ ...f, [name]: value }))
+      setErrors(errs => ({ ...errs, [name]: undefined }))
     }
-    setErrors(errs => ({ ...errs, [name]: undefined }))
     setGlobalErr('')
   }
 
   const validateFrontEnd = () => {
     const errs = {}
-    if (!form.firstName.trim()) errs.firstName = 'First Name is required.'
-    if (!form.lastName.trim())  errs.lastName  = 'Last Name is required.'
-    if (!/^[A-Za-z]{2}$/.test(form.state)) {
-      errs.state = 'State must be 2 letters.'
-    }
-    if (!/^\d{10}$/.test(form.phoneNumber)) {
-      errs.phoneNumber = 'Phone Number must be 10 digits.'
-    }
-    if (!form.email.trim())    errs.email    = 'Email is required.'
-    if (!form.password)        errs.password = 'Password is required.'
+    // Required fields
+    if (!form.firstName.trim())              errs.firstName               = 'First Name is required.'
+    if (!form.lastName.trim())               errs.lastName                = 'Last Name is required.'
+    if (!form.birthday)                      errs.birthday                = 'Birthday is required.'
+    if (!form.street.trim())                 errs.street                  = 'Street is required.'
+    if (!form.city.trim())                   errs.city                    = 'City is required.'
+    if (!/^[A-Za-z]{2}$/.test(form.state))   errs.state                   = 'State must be 2 letters.'
+    if (!/^\d{10}$/.test(form.phoneNumber))  errs.phoneNumber             = 'Phone Number must be 10 digits.'
+    if (!form.preferredContact.trim())       errs.preferredContact        = 'Preferred Contact is required.'
+    if (!form.languagesSpoken.trim())        errs.languagesSpoken         = 'Languages Spoken is required.'
+    if (!form.howHeard.trim())               errs.howHeard                = 'How You Heard About Us is required.'
+    if (!form.otherOrganizations.trim())      errs.otherOrganizations      = 'Other Organizations is required.'
+    if (!form.disabilities.trim())           errs.disabilities            = 'Disabilities is required.'
+    if (!form.email.trim())                  errs.email                   = 'Email is required.'
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))
+                                             errs.email                   = 'Email is invalid.'
+    if (!form.password)                      errs.password                = 'Password is required.'
+
+    // Emergency contact required
+    if (!form.emergencyContact.name.trim())        errs['emergencyContact.name']         = 'Contact Name is required.'
+    if (!form.emergencyContact.phone.trim())       errs['emergencyContact.phone']        = 'Contact Phone is required.'
+    if (!form.emergencyContact.relationship.trim())errs['emergencyContact.relationship'] = 'Contact Relationship is required.'
+
     return errs
   }
 
@@ -100,115 +96,99 @@ export default function RegisterPage() {
         body: JSON.stringify(form)
       })
       const data = await res.json()
+
       if (res.ok) {
         localStorage.setItem('token', data.token)
         navigate('/clock')
+      } else if (/validation failed/i.test(data.error || '')) {
+        // Schema validation errors
+        const parts = (data.error || '')
+          .split(/validation failed:?/i)[1]
+          .split(/,\s*/)
+        const fldErr = {}
+        parts.forEach(p => {
+          const [key, ...rest] = p.split(/: (.+)/)
+          if (key && rest.length) fldErr[key.trim()] = rest.join(': ')
+        })
+        setErrors(fldErr)
       } else {
-        const msg = data.error || ''
-        if (/validation failed/i.test(msg)) {
-          // parse "Validation failed: field: msg, field2: msg2"
-          const parts = msg
-            .split(/validation failed:?/i)[1]
-            .split(/,\s*/)
-          const fldErr = {}
-          parts.forEach(p => {
-            const [key, ...rest] = p.split(/: (.+)/)
-            if (key && rest.length) fldErr[key.trim()] = rest.join(': ')
-          })
-          setErrors(fldErr)
-        } else {
-          setGlobalErr(msg || `Error ${res.status}`)
-        }
+        setGlobalErr(data.error || `Error ${res.status}`)
       }
     } catch {
       setGlobalErr('Network error. Please try again.')
     }
+
     setLoading(false)
   }
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
-      <header className="flex items-center mb-6">
-        <HamburgerMenu />
-        <h1 className="text-2xl font-bold ml-4">Create Account</h1>
-      </header>
-
-      <main className="max-w-lg mx-auto bg-white p-6 rounded shadow space-y-4">
+      <HamburgerMenu />
+      <main className="max-w-lg mx-auto bg-white p-6 rounded shadow">
+        <h1 className="text-2xl font-bold mb-4">Create Account</h1>
         {globalErr && (
-          <p className="text-red-600 text-xs text-center" style={{ color: 'red', fontSize: '0.75rem' }}>
-            {globalErr}
-          </p>
+          <p className="mb-4 text-red-600 text-center">{globalErr}</p>
         )}
-
         <form onSubmit={handleSubmit} className="space-y-4">
           {[
             'firstName','lastName','birthday',
             'street','city','state',
             'phoneNumber','preferredContact',
             'languagesSpoken','howHeard',
-            'otherOrganizations','disabilities','email','password'
+            'otherOrganizations','disabilities',
+            'email','password'
           ].map(name => (
             <div key={name}>
               <label className="block font-medium">
                 {fieldLabels[name]}:
               </label>
-              <div className="flex items-center">
-                <input
-                  type={
-                    name === 'birthday'
-                      ? 'date'
-                      : name === 'password'
-                      ? 'password'
-                      : 'text'
-                  }
-                  name={name}
-                  value={
-                    name === 'password' ? form.password : form[name] || ''
-                  }
-                  onChange={handleChange}
-                  className={`mt-1 w-full border rounded p-2 ${
-                    errors[name] ? 'border-red-600' : ''
-                  }`}
-                />
-                {errors[name] && (
-                  <span
-                    className="ml-2 text-red-600 text-xs"
-                    style={{ color: 'red', fontSize: '0.75rem' }}
-                  >
-                    {formatError(name, errors[name])}
-                  </span>
-                )}
-              </div>
+              <input
+                type={
+                  name === 'birthday'  ? 'date' :
+                  name === 'password'  ? 'password' :
+                                         'text'
+                }
+                name={name}
+                value={
+                  name === 'password'
+                    ? form.password
+                    : form[name] || ''
+                }
+                onChange={handleChange}
+                className={`mt-1 w-full border rounded p-2 ${
+                  errors[name] ? 'border-red-600' : ''
+                }`}
+              />
+              {errors[name] && (
+                <p className="text-red-600 text-xs mt-1">
+                  {errors[name]}
+                </p>
+              )}
             </div>
           ))}
 
-          <fieldset className="border p-4 rounded space-y-4">
+          <fieldset className="p-4 border rounded space-y-4">
             <legend className="font-medium">Emergency Contact</legend>
             {['name','phone','relationship'].map(key => {
               const fld = `emergencyContact.${key}`
               return (
                 <div key={fld}>
                   <label className="block font-medium">
-                    {fieldLabels[fld]}:
+                    {key.charAt(0).toUpperCase() + key.slice(1)}:
                   </label>
-                  <div className="flex items-center">
-                    <input
-                      name={fld}
-                      value={form.emergencyContact[key] || ''}
-                      onChange={handleChange}
-                      className={`mt-1 w-full border rounded p-2 ${
-                        errors[key] ? 'border-red-600' : ''
-                      }`}
-                    />
-                    {errors[key] && (
-                      <span
-                        className="ml-2 text-red-600 text-xs"
-                        style={{ color: 'red', fontSize: '0.75rem' }}
-                      >
-                        {formatError(key, errors[key])}
-                      </span>
-                    )}
-                  </div>
+                  <input
+                    name={fld}
+                    value={form.emergencyContact[key] || ''}
+                    onChange={handleChange}
+                    className={`mt-1 w-full border rounded p-2 ${
+                      errors[fld] ? 'border-red-600' : ''
+                    }`}
+                  />
+                  {errors[fld] && (
+                    <p className="text-red-600 text-xs mt-1">
+                      {errors[fld]}
+                    </p>
+                  )}
                 </div>
               )
             })}
