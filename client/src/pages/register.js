@@ -1,8 +1,8 @@
 // client/src/pages/register.js
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import HamburgerMenu from '../components/HamburgerMenu'
 
+// human-friendly field labels
 const fieldLabels = {
   firstName: 'First Name',
   lastName: 'Last Name',
@@ -17,22 +17,41 @@ const fieldLabels = {
   otherOrganizations: 'Other Organizations',
   disabilities: 'Disabilities',
   email: 'Email',
-  password: 'Password'
+  password: 'Password',
+  'emergencyContact.name': 'Emergency Contact Name',
+  'emergencyContact.phone': 'Emergency Contact Phone',
+  'emergencyContact.relationship': 'Emergency Contact Relationship'
+}
+
+// format raw Mongoose error messages into something friendlier
+function formatError(field, msg) {
+  if (/required/i.test(msg)) {
+    return `${fieldLabels[field]} is required.`
+  }
+  const minMatch = msg.match(/Minimum characters is (\d+)/)
+  if (minMatch) {
+    return `${fieldLabels[field]} must be at least ${minMatch[1]} characters.`
+  }
+  const maxMatch = msg.match(/Max characters is (\d+)/)
+  if (maxMatch) {
+    return `${fieldLabels[field]} must be at most ${maxMatch[1]} characters.`
+  }
+  // fallback to the raw message
+  return msg
 }
 
 export default function RegisterPage() {
   const navigate = useNavigate()
   const [form, setForm] = useState({
-    firstName: '', lastName: '', birthday: '',
-    street: '', city: '', state: '',
-    phoneNumber: '', preferredContact: '',
-    languagesSpoken: '', howHeard: '',
-    otherOrganizations: '', disabilities: '',
-    emergencyContact: { name: '', phone: '', relationship: '' },
-    email: '', password: ''
+    firstName:'', lastName:'', birthday:'',
+    street:'', city:'', state:'',
+    phoneNumber:'', preferredContact:'',
+    languagesSpoken:'', howHeard:'',
+    otherOrganizations:'', disabilities:'',
+    emergencyContact:{ name:'', phone:'', relationship:'' },
+    email:'', password:''
   })
-  const [errors, setErrors] = useState({})
-  const [globalErr, setGlobalErr] = useState('')
+  const [errors, setErrors]   = useState({})
   const [loading, setLoading] = useState(false)
 
   const handleChange = e => {
@@ -43,91 +62,56 @@ export default function RegisterPage() {
         ...f,
         emergencyContact: { ...f.emergencyContact, [key]: value }
       }))
-      setErrors(errs => ({ ...errs, [`emergencyContact.${key}`]: undefined }))
     } else {
       setForm(f => ({ ...f, [name]: value }))
-      setErrors(errs => ({ ...errs, [name]: undefined }))
     }
-    setGlobalErr('')
-  }
-
-  const validateFrontEnd = () => {
-    const errs = {}
-    // Required fields
-    if (!form.firstName.trim())              errs.firstName               = 'First Name is required.'
-    if (!form.lastName.trim())               errs.lastName                = 'Last Name is required.'
-    if (!form.birthday)                      errs.birthday                = 'Birthday is required.'
-    if (!form.street.trim())                 errs.street                  = 'Street is required.'
-    if (!form.city.trim())                   errs.city                    = 'City is required.'
-    if (!/^[A-Za-z]{2}$/.test(form.state))   errs.state                   = 'State must be 2 letters.'
-    if (!/^\d{10}$/.test(form.phoneNumber))  errs.phoneNumber             = 'Phone Number must be 10 digits.'
-    if (!form.preferredContact.trim())       errs.preferredContact        = 'Preferred Contact is required.'
-    if (!form.languagesSpoken.trim())        errs.languagesSpoken         = 'Languages Spoken is required.'
-    if (!form.howHeard.trim())               errs.howHeard                = 'How You Heard About Us is required.'
-    if (!form.otherOrganizations.trim())      errs.otherOrganizations      = 'Other Organizations is required.'
-    if (!form.disabilities.trim())           errs.disabilities            = 'Disabilities is required.'
-    if (!form.email.trim())                  errs.email                   = 'Email is required.'
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))
-                                             errs.email                   = 'Email is invalid.'
-    if (!form.password)                      errs.password                = 'Password is required.'
-
-    // Emergency contact required
-    if (!form.emergencyContact.name.trim())        errs['emergencyContact.name']         = 'Contact Name is required.'
-    if (!form.emergencyContact.phone.trim())       errs['emergencyContact.phone']        = 'Contact Phone is required.'
-    if (!form.emergencyContact.relationship.trim())errs['emergencyContact.relationship'] = 'Contact Relationship is required.'
-
-    return errs
+    setErrors({})
   }
 
   const handleSubmit = async e => {
     e.preventDefault()
     setLoading(true)
-    const frontErrs = validateFrontEnd()
-    if (Object.keys(frontErrs).length) {
-      setErrors(frontErrs)
-      setLoading(false)
-      return
-    }
+    setErrors({})
 
     try {
       const res = await fetch('http://localhost:5001/api/auth/register', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type':'application/json' },
         body: JSON.stringify(form)
       })
       const data = await res.json()
-
       if (res.ok) {
-        localStorage.setItem('token', data.token)
-        navigate('/clock')
-      } else if (/validation failed/i.test(data.error || '')) {
-        // Schema validation errors
-        const parts = (data.error || '')
-          .split(/validation failed:?/i)[1]
-          .split(/,\s*/)
-        const fldErr = {}
+        return navigate('/login')
+      }
+
+      const errText = data.error || ''
+      if (/validation failed/i.test(errText)) {
+        // parse fields
+        const tail = errText.split(/validation failed:?/i)[1] || ''
+        const parts = tail.split(/,\s*/)
+        const fieldErrors = {}
         parts.forEach(p => {
           const [key, ...rest] = p.split(/: (.+)/)
-          if (key && rest.length) fldErr[key.trim()] = rest.join(': ')
+          if (key && rest.length) {
+            fieldErrors[key.trim()] = rest.join(': ').trim()
+          }
         })
-        setErrors(fldErr)
+        setErrors(fieldErrors)
       } else {
-        setGlobalErr(data.error || `Error ${res.status}`)
+        setErrors({ _global: errText })
       }
     } catch {
-      setGlobalErr('Network error. Please try again.')
+      setErrors({ _global: 'Network error. Please try again.' })
     }
-
     setLoading(false)
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
-      <HamburgerMenu />
-      <main className="max-w-lg mx-auto bg-white p-6 rounded shadow">
+    <div className="min-h-screen flex items-start justify-center bg-gray-50 p-6">
+      <div className="w-full max-w-xl bg-white p-6 rounded shadow">
         <h1 className="text-2xl font-bold mb-4">Create Account</h1>
-        {globalErr && (
-          <p className="mb-4 text-red-600 text-center">{globalErr}</p>
+        {errors._global && (
+          <p className="text-red-500 text-sm mb-4">{errors._global}</p>
         )}
         <form onSubmit={handleSubmit} className="space-y-4">
           {[
@@ -135,64 +119,94 @@ export default function RegisterPage() {
             'street','city','state',
             'phoneNumber','preferredContact',
             'languagesSpoken','howHeard',
-            'otherOrganizations','disabilities',
-            'email','password'
+            'disabilities'
           ].map(name => (
             <div key={name}>
-              <label className="block font-medium">
-                {fieldLabels[name]}:
-              </label>
+              <label className="block font-medium">{fieldLabels[name]}</label>
               <input
-                type={
-                  name === 'birthday'  ? 'date' :
-                  name === 'password'  ? 'password' :
-                                         'text'
-                }
                 name={name}
-                value={
-                  name === 'password'
-                    ? form.password
-                    : form[name] || ''
-                }
+                type={name==='birthday'?'date':'text'}
+                value={form[name]}
                 onChange={handleChange}
-                className={`mt-1 w-full border rounded p-2 ${
-                  errors[name] ? 'border-red-600' : ''
-                }`}
+                className="mt-1 w-full border rounded p-2"
               />
               {errors[name] && (
-                <p className="text-red-600 text-xs mt-1">
-                  {errors[name]}
+                <p className="text-red-500 text-sm mt-1">
+                  {formatError(name, errors[name])}
                 </p>
               )}
             </div>
           ))}
 
-          <fieldset className="p-4 border rounded space-y-4">
+          <div>
+            <label className="block font-medium">{fieldLabels.otherOrganizations}</label>
+            <textarea
+              name="otherOrganizations"
+              value={form.otherOrganizations}
+              onChange={handleChange}
+              className="mt-1 w-full border rounded p-2 h-20"
+            />
+            {errors.otherOrganizations && (
+              <p className="text-red-500 text-sm mt-1">
+                {formatError('otherOrganizations', errors.otherOrganizations)}
+              </p>
+            )}
+          </div>
+
+          <fieldset className="border p-4 rounded space-y-2">
             <legend className="font-medium">Emergency Contact</legend>
             {['name','phone','relationship'].map(key => {
               const fld = `emergencyContact.${key}`
               return (
-                <div key={fld}>
-                  <label className="block font-medium">
-                    {key.charAt(0).toUpperCase() + key.slice(1)}:
-                  </label>
+                <div key={key}>
+                  <label className="block font-medium">{fieldLabels[fld]}</label>
                   <input
                     name={fld}
-                    value={form.emergencyContact[key] || ''}
+                    value={form.emergencyContact[key]}
                     onChange={handleChange}
-                    className={`mt-1 w-full border rounded p-2 ${
-                      errors[fld] ? 'border-red-600' : ''
-                    }`}
+                    className="mt-1 w-full border rounded p-2"
                   />
                   {errors[fld] && (
-                    <p className="text-red-600 text-xs mt-1">
-                      {errors[fld]}
+                    <p className="text-red-500 text-sm mt-1">
+                      {formatError(fld, errors[fld])}
                     </p>
                   )}
                 </div>
               )
             })}
           </fieldset>
+
+          <div>
+            <label className="block font-medium">{fieldLabels.email}</label>
+            <input
+              name="email"
+              type="email"
+              value={form.email}
+              onChange={handleChange}
+              className="mt-1 w-full border rounded p-2"
+            />
+            {errors.email && (
+              <p className="text-red-500 text-sm mt-1">
+                {formatError('email', errors.email)}
+              </p>
+            )}
+          </div>
+
+          <div>
+            <label className="block font-medium">{fieldLabels.password}</label>
+            <input
+              name="password"
+              type="password"
+              value={form.password}
+              onChange={handleChange}
+              className="mt-1 w-full border rounded p-2"
+            />
+            {errors.password && (
+              <p className="text-red-500 text-sm mt-1">
+                {formatError('password', errors.password)}
+              </p>
+            )}
+          </div>
 
           <button
             type="submit"
@@ -202,7 +216,7 @@ export default function RegisterPage() {
             {loading ? 'Creating…' : 'Create Account'}
           </button>
         </form>
-      </main>
+      </div>
     </div>
   )
 }

@@ -1,88 +1,57 @@
-const bcrypt   = require('bcryptjs');
+// server/controllers/userdataController.js
+// — CRUD handlers for volunteer profile documents —
+
 const UserData = require('../models/userdataModel');
 
-/* ───────────  GET /api/userdata  ─────────── */
+/* GET /api/userdata  – list current user, or all if admin */
 exports.getAllUserData = async (req, res) => {
   try {
-    const filter = req.user.role === 'admin'
-      ? {}
-      : { _id: req.user._id };
-    const users = await UserData.find(filter).select('-passwordHash');
+    const filter = req.user.role === 'admin' ? {} : { _id: req.user._id };
+    const users  = await UserData.find(filter).select('-passwordHash');
     res.json(users);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-/* ───────────  GET /api/userdata/:id  ─────────── */
+/* GET /api/userdata/:id */
 exports.getUserData = async (req, res) => {
   try {
-    const user = await UserData.findById(req.params.id)
-      .select('-passwordHash');
+    const user = await UserData.findById(req.params.id).select('-passwordHash');
     if (!user) return res.status(404).json({ error: 'Not found' });
-    if (req.user.role !== 'admin' &&
-        user._id.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ error: 'Forbidden' });
-    }
     res.json(user);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-/* ───────────  POST /api/userdata  ─────────── */
+/* POST /api/userdata  – create a profile (admin only, typically) */
 exports.addUserData = async (req, res) => {
   try {
-    const { firstName, lastName, email, password, role } = req.body;
-    if (await UserData.findOne({ email })) {
-      return res.status(400).json({ error: 'Email already in use' });
-    }
-    const passwordHash = await bcrypt.hash(password, 10);
-    const user = await UserData.create({
-      firstName, lastName, email, passwordHash, role
-    });
-    res.status(201).json({
-      id:        user._id,
-      firstName: user.firstName,
-      lastName:  user.lastName,
-      email:     user.email,
-      role:      user.role
-    });
+    const user = await UserData.create(req.body);
+    res.status(201).json(user);
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
 };
 
-/* ───────────  PATCH /api/userdata/:id  ─────────── */
+/* PATCH /api/userdata/:id */
 exports.updateUserData = async (req, res) => {
   try {
-    const { firstName, lastName, email, password, role } = req.body;
-    const user = await UserData.findById(req.params.id);
+    const user = await UserData.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true, runValidators: true }
+    ).select('-passwordHash');
+
     if (!user) return res.status(404).json({ error: 'Not found' });
-    if (req.user.role !== 'admin' &&
-        user._id.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ error: 'Forbidden' });
-    }
-    if (firstName) user.firstName = firstName;
-    if (lastName)  user.lastName  = lastName;
-    if (email)     user.email     = email;
-    // only admin can change roles
-    if (role && req.user.role === 'admin') user.role = role;
-    if (password) user.passwordHash = await bcrypt.hash(password, 10);
-    await user.save();
-    res.json({
-      id:        user._id,
-      firstName: user.firstName,
-      lastName:  user.lastName,
-      email:     user.email,
-      role:      user.role
-    });
+    res.json(user);
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
 };
 
-/* ───────────  DELETE /api/userdata/:id  ─────────── */
+/* DELETE /api/userdata/:id */
 exports.deleteUserData = async (req, res) => {
   try {
     const user = await UserData.findByIdAndDelete(req.params.id);

@@ -17,161 +17,178 @@ const fieldLabels = {
   otherOrganizations: 'Other Organizations',
   disabilities: 'Disabilities',
   email: 'Email',
-  password: 'Password'
+  'emergencyContact.name': 'Emergency Contact Name',
+  'emergencyContact.phone': 'Emergency Contact Phone',
+  'emergencyContact.relationship': 'Emergency Contact Relationship'
+}
+
+function formatError(field, msg) {
+  if (/required/i.test(msg)) {
+    return `${fieldLabels[field]} is required.`
+  }
+  const minMatch = msg.match(/Minimum characters is (\d+)/)
+  if (minMatch) {
+    return `${fieldLabels[field]} must be at least ${minMatch[1]} characters.`
+  }
+  const maxMatch = msg.match(/Max characters is (\d+)/)
+  if (maxMatch) {
+    return `${fieldLabels[field]} must be at most ${maxMatch[1]} characters.`
+  }
+  return msg
 }
 
 export default function ProfilePage() {
   const navigate = useNavigate()
-  const [form, setForm]       = useState(null)
-  const [errors, setErrors]   = useState({})
-  const [globalErr, setGlobalErr] = useState('')
+  const [form, setForm]     = useState(null)
+  const [errors, setErrors] = useState({})
   const [loading, setLoading] = useState(false)
-  const token                 = localStorage.getItem('token')
+  const [success, setSuccess] = useState('')
+
+  const token = localStorage.getItem('token')
 
   useEffect(() => {
+    if (!token) return navigate('/login')
     fetch('http://localhost:5001/api/userdata', {
-      headers: { 'Authorization': `Bearer ${token}` },
-      credentials: 'include'
+      headers: { Authorization:`Bearer ${token}` }
     })
       .then(r => r.json())
-      .then(data => setForm(data[0] || null))
-      .catch(() => setGlobalErr('Failed to load profile.'))
-  }, [token])
+      .then(data => {
+        const u = Array.isArray(data) ? data[0] : data
+        u.emergencyContact = u.emergencyContact || { name:'',phone:'',relationship:'' }
+        setForm(u)
+      })
+      .catch(() => setErrors({_global:'Failed to load profile'}))
+  }, [token, navigate])
 
   const handleChange = e => {
     const { name, value } = e.target
     if (name.startsWith('emergencyContact.')) {
-      const k = name.split('.')[1]
+      const key = name.split('.')[1]
       setForm(f => ({
         ...f,
-        emergencyContact: { ...f.emergencyContact, [k]: value }
+        emergencyContact: { ...f.emergencyContact, [key]: value }
       }))
-      setErrors(errs => ({ ...errs, [name]: undefined }))
     } else {
       setForm(f => ({ ...f, [name]: value }))
-      setErrors(errs => ({ ...errs, [name]: undefined }))
     }
-    setGlobalErr('')
-  }
-
-  const validateFrontEnd = () => {
-    const errs = {}
-    if (!form.firstName.trim())            errs.firstName               = 'First Name is required.'
-    if (!form.lastName.trim())             errs.lastName                = 'Last Name is required.'
-    if (!form.birthday)                    errs.birthday                = 'Birthday is required.'
-    if (!form.street.trim())               errs.street                  = 'Street is required.'
-    if (!form.city.trim())                 errs.city                    = 'City is required.'
-    if (!/^[A-Za-z]{2}$/.test(form.state)) errs.state                   = 'State must be 2 letters.'
-    if (!/^\d{10}$/.test(form.phoneNumber))errs.phoneNumber             = 'Phone Number must be 10 digits.'
-    if (!form.email.trim())                errs.email                   = 'Email is required.'
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))
-                                           errs.email                   = 'Email is invalid.'
-    // Emergency contact
-    ['name','phone','relationship'].forEach(key => {
-      const fld = `emergencyContact.${key}`
-      if (!form.emergencyContact[key]?.trim()) {
-        errs[fld] = `Emergency contact ${key} is required.`
-      }
-    })
-    return errs
+    setErrors({})
+    setSuccess('')
   }
 
   const handleSubmit = async e => {
     e.preventDefault()
-    const frontErrs = validateFrontEnd()
-    if (Object.keys(frontErrs).length) {
-      setErrors(frontErrs)
-      return
-    }
     setLoading(true)
+    setErrors({}); setSuccess('')
 
     try {
       const res = await fetch(
-        `http://localhost:5001/api/userdata/${form._id}`, {
+        `http://localhost:5001/api/userdata/${form._id}`,
+        {
           method: 'PATCH',
           headers: {
-            'Content-Type':  'application/json',
-            'Authorization': `Bearer ${token}`
+            'Content-Type':'application/json',
+            Authorization: `Bearer ${token}`
           },
-          credentials: 'include',
           body: JSON.stringify(form)
         }
       )
-      if (res.ok) navigate('/dashboard')
-      else {
-        const data = await res.json()
-        setGlobalErr(data.error || `Error ${res.status}`)
+      const data = await res.json()
+      if (res.ok) {
+        setSuccess('Information updated successfully!')
+      } else {
+        const errText = data.error || ''
+        if (/validation failed/i.test(errText)) {
+          const tail = errText.split(/validation failed:?/i)[1] || ''
+          const parts = tail.split(/,\s*/)
+          const fldErr = {}
+          parts.forEach(p => {
+            const [key, ...rest] = p.split(/: (.+)/)
+            if (key && rest.length) {
+              fldErr[key.trim()] = rest.join(': ').trim()
+            }
+          })
+          setErrors(fldErr)
+        } else {
+          setErrors({_global: errText || `Error ${res.status}`})
+        }
       }
     } catch {
-      setGlobalErr('Network error. Please try again.')
+      setErrors({_global:'Network error. Please try again.'})
     }
-
     setLoading(false)
   }
 
   if (!form) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        Loading…
-      </div>
-    )
+    return <div className="p-6 text-center">Loading…</div>
   }
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
-      <HamburgerMenu />
-      <main className="max-w-lg mx-auto bg-white p-6 rounded shadow">
-        <h1 className="text-2xl font-bold mb-4">My Profile</h1>
-        {globalErr && (
-          <p className="mb-4 text-red-600 text-center">{globalErr}</p>
+      <header className="flex items-center mb-6">
+        <HamburgerMenu />
+        <h1 className="text-2xl font-bold ml-4">Edit Profile</h1>
+      </header>
+
+      <main className="max-w-xl mx-auto bg-white p-6 rounded shadow space-y-4">
+        {errors._global && (
+          <p className="text-red-500 text-sm text-center">{errors._global}</p>
         )}
+        {success && (
+          <p className="text-green-600 text-sm text-center">{success}</p>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-4">
           {[
             'firstName','lastName','birthday',
             'street','city','state',
-            'phoneNumber','email'
+            'phoneNumber','preferredContact',
+            'languagesSpoken','howHeard',
+            'otherOrganizations','disabilities','email'
           ].map(name => (
             <div key={name}>
-              <label className="block font-medium">
-                {fieldLabels[name]}:
-              </label>
-              <input
-                type={name === 'birthday' ? 'date' : 'text'}
-                name={name}
-                value={form[name] || ''}
-                onChange={handleChange}
-                className={`mt-1 w-full border rounded p-2 ${
-                  errors[name] ? 'border-red-600' : ''
-                }`}
-              />
+              <label className="block font-medium">{fieldLabels[name]}</label>
+              {name === 'otherOrganizations' ? (
+                <textarea
+                  name={name}
+                  value={form[name] || ''}
+                  onChange={handleChange}
+                  className="mt-1 w-full border rounded p-2 h-20"
+                />
+              ) : (
+                <input
+                  name={name}
+                  type={name==='birthday'?'date': name==='email'?'email':'text'}
+                  value={form[name] || ''}
+                  onChange={handleChange}
+                  className="mt-1 w-full border rounded p-2"
+                />
+              )}
               {errors[name] && (
-                <p className="text-red-600 text-xs mt-1">
-                  {errors[name]}
+                <p className="text-red-500 text-sm mt-1">
+                  {formatError(name, errors[name])}
                 </p>
               )}
             </div>
           ))}
 
-          <fieldset className="p-4 border rounded space-y-4">
+          <fieldset className="border p-4 rounded space-y-2">
             <legend className="font-medium">Emergency Contact</legend>
             {['name','phone','relationship'].map(key => {
               const fld = `emergencyContact.${key}`
               return (
-                <div key={fld}>
+                <div key={key}>
                   <label className="block font-medium">
-                    {key.charAt(0).toUpperCase() + key.slice(1)}:
+                    {fieldLabels[fld]}
                   </label>
                   <input
                     name={fld}
                     value={form.emergencyContact[key] || ''}
                     onChange={handleChange}
-                    className={`mt-1 w-full border rounded p-2 ${
-                      errors[fld] ? 'border-red-600' : ''
-                    }`}
+                    className="mt-1 w-full border rounded p-2"
                   />
                   {errors[fld] && (
-                    <p className="text-red-600 text-xs mt-1">
-                      {errors[fld]}
+                    <p className="text-red-500 text-sm mt-1">
+                      {formatError(fld, errors[fld])}
                     </p>
                   )}
                 </div>
