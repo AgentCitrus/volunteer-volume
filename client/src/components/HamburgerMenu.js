@@ -5,91 +5,64 @@ import { Menu as MenuIcon, X as CloseIcon } from 'lucide-react'
 
 export default function HamburgerMenu() {
   const [open, setOpen] = useState(false)
-  const menuRef = useRef(null)
-  const navigate = useNavigate()
-  const { pathname } = useLocation()
-
-  // Close on outside click
-  useEffect(() => {
-    const handleClick = e => {
-      if (open && menuRef.current && !menuRef.current.contains(e.target)) {
-        setOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClick)
-    return () => document.removeEventListener('mousedown', handleClick)
-  }, [open])
-
-  // Decode role
-  const token = localStorage.getItem('token')
-  let role = ''
-  if (token) {
-    try {
-      role = JSON.parse(window.atob(token.split('.')[1])).role
-    } catch {}
-  }
-
-  const items = [
-    { label: 'Dashboard',       path: '/dashboard' },
-    ...(role === 'admin'
-      ? [{ label: 'Admin Dashboard', path: '/admin' }]
-      : []),
-    { label: 'My Profile',      path: '/profilepage' },
-  ]
+  const wrapperRef      = useRef(null)
+  const navigate        = useNavigate()
+  const { pathname }    = useLocation()
 
   const logout = () => {
     localStorage.removeItem('token')
-    document.cookie = 'token=; Max-Age=0; path=/;'
     navigate('/login')
   }
 
+  const tabs = [
+    { name: 'Time Clock', path: '/clock' },
+    { name: 'Dashboard',  path: '/dashboard' },
+    { name: 'My Profile', path: '/userdata' }
+  ]
+
+  // Close menu when clicking outside the whole wrapper
+  useEffect(() => {
+    const handleClickOutside = e => {
+      if (open && wrapperRef.current && !wrapperRef.current.contains(e.target)) {
+        setOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [open])
+
   return (
-    <div className="relative">
+    <div ref={wrapperRef} className="relative inline-block">
       <button
         onClick={() => setOpen(o => !o)}
-        aria-label="Menu"
-        className="p-1 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        className="p-2 focus:outline-none"
       >
-        {open
-          ? <CloseIcon size={20} className="text-gray-700" />
-          : <MenuIcon  size={20} className="text-gray-700" />}
+        {open ? <CloseIcon size={24}/> : <MenuIcon size={24}/>}
       </button>
 
       {open && (
-        <div
-          ref={menuRef}
-          className="absolute left-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-50"
-          style={{ borderCollapse: 'separate' }}
-        >
+        <div className="absolute right-0 mt-2 w-48 bg-white shadow-lg rounded divide-y divide-gray-200">
           <div className="py-1">
-            {items.map(item => {
-              const isActive = pathname === item.path
-              return (
+            {tabs
+              .filter(tab => tab.path !== pathname)
+              .map(tab => (
                 <button
-                  key={item.path}
+                  key={tab.path}
                   onClick={() => {
                     setOpen(false)
-                    navigate(item.path)
+                    navigate(tab.path)
                   }}
-                  disabled={isActive}
-                  className={`
-                    block w-full text-left px-4 py-2 text-sm font-medium
-                    ${isActive
-                      ? 'bg-gray-100 text-gray-900 cursor-default'
-                      : 'text-gray-700 hover:bg-gray-50'}
-                    focus:outline-none focus:bg-gray-50
-                  `}
+                  className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
                 >
-                  {item.label}
+                  {tab.name}
                 </button>
-              )
-            })}
+              ))}
           </div>
           <div className="border-t border-gray-200" />
           <div className="py-1">
             <button
               onClick={logout}
-              className="block w-full text-left px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 focus:outline-none focus:bg-red-50"
+              className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-100"
             >
               Log Out
             </button>

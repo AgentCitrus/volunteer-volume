@@ -1,14 +1,17 @@
+// client/src/App.js
 import React from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 
-import LoginPage          from './pages/login'
-import RegisterPage       from './pages/register'
-import ClockPage          from './pages/clock'
-import ProfilePage        from './pages/profilepage'
-import DashboardPage      from './pages/dashboard'
-import AdminPage          from './pages/admin'
-import ResetPasswordPage  from './pages/ResetPasswordPage'  // <— Note the filename
-import ProtectedRoute     from './components/ProtectedRoute'
+import LoginPage         from './pages/login'
+import RegisterPage      from './pages/register'
+import ResetPasswordPage from './pages/ResetPasswordPage'
+
+import ClockPage     from './pages/clock'
+import DashboardPage from './pages/dashboard'
+import ProfilePage   from './pages/profilepage'
+import AdminPage     from './pages/admin'
+
+import ProtectedRoute from './components/ProtectedRoute'
 
 export default function App() {
   return (
@@ -17,28 +20,31 @@ export default function App() {
         {/* Public */}
         <Route path="/login"             element={<LoginPage />} />
         <Route path="/register"          element={<RegisterPage />} />
-        <Route
-          path="/reset-password/:token"
-          element={<ResetPasswordPage />}
-        />
+        <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
 
         {/* Authenticated */}
         <Route
           path="/clock"
           element={
-            <ProtectedRoute><ClockPage /></ProtectedRoute>
+            <ProtectedRoute>
+              <ClockPage />
+            </ProtectedRoute>
           }
         />
         <Route
           path="/dashboard"
           element={
-            <ProtectedRoute><DashboardPage /></ProtectedRoute>
+            <ProtectedRoute>
+              <DashboardPage />
+            </ProtectedRoute>
           }
         />
         <Route
-          path="/profilepage"
+          path="/userdata"
           element={
-            <ProtectedRoute><ProfilePage /></ProtectedRoute>
+            <ProtectedRoute>
+              <ProfilePage />
+            </ProtectedRoute>
           }
         />
 
@@ -46,7 +52,9 @@ export default function App() {
         <Route
           path="/admin"
           element={
-            <ProtectedRoute adminOnly><AdminPage /></ProtectedRoute>
+            <ProtectedRoute adminOnly>
+              <AdminPage />
+            </ProtectedRoute>
           }
         />
 
