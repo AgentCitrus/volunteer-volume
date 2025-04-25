@@ -1,8 +1,8 @@
 // client/src/pages/register.js
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import HamburgerMenu from '../components/HamburgerMenu'
 
-// human-friendly field labels
 const fieldLabels = {
   firstName: 'First Name',
   lastName: 'Last Name',
@@ -16,43 +16,42 @@ const fieldLabels = {
   howHeard: 'How You Heard About Us',
   otherOrganizations: 'Other Organizations',
   disabilities: 'Disabilities',
-  email: 'Email',
-  password: 'Password',
   'emergencyContact.name': 'Emergency Contact Name',
   'emergencyContact.phone': 'Emergency Contact Phone',
-  'emergencyContact.relationship': 'Emergency Contact Relationship'
+  'emergencyContact.relationship': 'Emergency Contact Relationship',
+  email: 'Email',
+  password: 'Password'
 }
 
-// format raw Mongoose error messages into something friendlier
 function formatError(field, msg) {
   if (/required/i.test(msg)) {
     return `${fieldLabels[field]} is required.`
   }
-  const minMatch = msg.match(/Minimum characters is (\d+)/)
-  if (minMatch) {
-    return `${fieldLabels[field]} must be at least ${minMatch[1]} characters.`
-  }
-  const maxMatch = msg.match(/Max characters is (\d+)/)
-  if (maxMatch) {
-    return `${fieldLabels[field]} must be at most ${maxMatch[1]} characters.`
-  }
-  // fallback to the raw message
   return msg
 }
 
 export default function RegisterPage() {
   const navigate = useNavigate()
   const [form, setForm] = useState({
-    firstName:'', lastName:'', birthday:'',
-    street:'', city:'', state:'',
-    phoneNumber:'', preferredContact:'',
-    languagesSpoken:'', howHeard:'',
-    otherOrganizations:'', disabilities:'',
-    emergencyContact:{ name:'', phone:'', relationship:'' },
-    email:'', password:''
+    firstName: '',
+    lastName: '',
+    birthday: '',
+    street: '',
+    city: '',
+    state: '',
+    phoneNumber: '',
+    preferredContact: '',
+    languagesSpoken: '',
+    howHeard: '',
+    otherOrganizations: '',
+    disabilities: '',
+    emergencyContact: { name: '', phone: '', relationship: '' },
+    email: '',
+    password: ''
   })
   const [errors, setErrors]   = useState({})
   const [loading, setLoading] = useState(false)
+  const [globalErr, setGlobalErr] = useState('')
 
   const handleChange = e => {
     const { name, value } = e.target
@@ -65,148 +64,155 @@ export default function RegisterPage() {
     } else {
       setForm(f => ({ ...f, [name]: value }))
     }
-    setErrors({})
+    setErrors(errs => ({ ...errs, [name]: undefined }))
+    setGlobalErr('')
+  }
+
+  const validateFrontEnd = () => {
+    const errs = {}
+    if (!form.firstName.trim()) errs.firstName = 'First Name is required.'
+    if (!form.lastName.trim())  errs.lastName  = 'Last Name is required.'
+    if (!/^[A-Za-z]{2}$/.test(form.state)) {
+      errs.state = 'State must be 2 letters.'
+    }
+    if (!/^\d{10}$/.test(form.phoneNumber)) {
+      errs.phoneNumber = 'Phone Number must be 10 digits.'
+    }
+    if (!form.email.trim())    errs.email    = 'Email is required.'
+    if (!form.password)        errs.password = 'Password is required.'
+    return errs
   }
 
   const handleSubmit = async e => {
     e.preventDefault()
     setLoading(true)
-    setErrors({})
+    const frontErrs = validateFrontEnd()
+    if (Object.keys(frontErrs).length) {
+      setErrors(frontErrs)
+      setLoading(false)
+      return
+    }
 
     try {
       const res = await fetch('http://localhost:5001/api/auth/register', {
         method: 'POST',
-        headers: { 'Content-Type':'application/json' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form)
       })
       const data = await res.json()
       if (res.ok) {
-        return navigate('/login')
-      }
-
-      const errText = data.error || ''
-      if (/validation failed/i.test(errText)) {
-        // parse fields
-        const tail = errText.split(/validation failed:?/i)[1] || ''
-        const parts = tail.split(/,\s*/)
-        const fieldErrors = {}
-        parts.forEach(p => {
-          const [key, ...rest] = p.split(/: (.+)/)
-          if (key && rest.length) {
-            fieldErrors[key.trim()] = rest.join(': ').trim()
-          }
-        })
-        setErrors(fieldErrors)
+        localStorage.setItem('token', data.token)
+        navigate('/clock')
       } else {
-        setErrors({ _global: errText })
+        const msg = data.error || ''
+        if (/validation failed/i.test(msg)) {
+          // parse "Validation failed: field: msg, field2: msg2"
+          const parts = msg
+            .split(/validation failed:?/i)[1]
+            .split(/,\s*/)
+          const fldErr = {}
+          parts.forEach(p => {
+            const [key, ...rest] = p.split(/: (.+)/)
+            if (key && rest.length) fldErr[key.trim()] = rest.join(': ')
+          })
+          setErrors(fldErr)
+        } else {
+          setGlobalErr(msg || `Error ${res.status}`)
+        }
       }
     } catch {
-      setErrors({ _global: 'Network error. Please try again.' })
+      setGlobalErr('Network error. Please try again.')
     }
     setLoading(false)
   }
 
   return (
-    <div className="min-h-screen flex items-start justify-center bg-gray-50 p-6">
-      <div className="w-full max-w-xl bg-white p-6 rounded shadow">
-        <h1 className="text-2xl font-bold mb-4">Create Account</h1>
-        {errors._global && (
-          <p className="text-red-500 text-sm mb-4">{errors._global}</p>
+    <div className="min-h-screen bg-gray-50 p-4">
+      <header className="flex items-center mb-6">
+        <HamburgerMenu />
+        <h1 className="text-2xl font-bold ml-4">Create Account</h1>
+      </header>
+
+      <main className="max-w-lg mx-auto bg-white p-6 rounded shadow space-y-4">
+        {globalErr && (
+          <p className="text-red-600 text-xs text-center" style={{ color: 'red', fontSize: '0.75rem' }}>
+            {globalErr}
+          </p>
         )}
+
         <form onSubmit={handleSubmit} className="space-y-4">
           {[
             'firstName','lastName','birthday',
             'street','city','state',
             'phoneNumber','preferredContact',
             'languagesSpoken','howHeard',
-            'disabilities'
+            'otherOrganizations','disabilities','email','password'
           ].map(name => (
             <div key={name}>
-              <label className="block font-medium">{fieldLabels[name]}</label>
-              <input
-                name={name}
-                type={name==='birthday'?'date':'text'}
-                value={form[name]}
-                onChange={handleChange}
-                className="mt-1 w-full border rounded p-2"
-              />
-              {errors[name] && (
-                <p className="text-red-500 text-sm mt-1">
-                  {formatError(name, errors[name])}
-                </p>
-              )}
+              <label className="block font-medium">
+                {fieldLabels[name]}:
+              </label>
+              <div className="flex items-center">
+                <input
+                  type={
+                    name === 'birthday'
+                      ? 'date'
+                      : name === 'password'
+                      ? 'password'
+                      : 'text'
+                  }
+                  name={name}
+                  value={
+                    name === 'password' ? form.password : form[name] || ''
+                  }
+                  onChange={handleChange}
+                  className={`mt-1 w-full border rounded p-2 ${
+                    errors[name] ? 'border-red-600' : ''
+                  }`}
+                />
+                {errors[name] && (
+                  <span
+                    className="ml-2 text-red-600 text-xs"
+                    style={{ color: 'red', fontSize: '0.75rem' }}
+                  >
+                    {formatError(name, errors[name])}
+                  </span>
+                )}
+              </div>
             </div>
           ))}
 
-          <div>
-            <label className="block font-medium">{fieldLabels.otherOrganizations}</label>
-            <textarea
-              name="otherOrganizations"
-              value={form.otherOrganizations}
-              onChange={handleChange}
-              className="mt-1 w-full border rounded p-2 h-20"
-            />
-            {errors.otherOrganizations && (
-              <p className="text-red-500 text-sm mt-1">
-                {formatError('otherOrganizations', errors.otherOrganizations)}
-              </p>
-            )}
-          </div>
-
-          <fieldset className="border p-4 rounded space-y-2">
+          <fieldset className="border p-4 rounded space-y-4">
             <legend className="font-medium">Emergency Contact</legend>
             {['name','phone','relationship'].map(key => {
               const fld = `emergencyContact.${key}`
               return (
-                <div key={key}>
-                  <label className="block font-medium">{fieldLabels[fld]}</label>
-                  <input
-                    name={fld}
-                    value={form.emergencyContact[key]}
-                    onChange={handleChange}
-                    className="mt-1 w-full border rounded p-2"
-                  />
-                  {errors[fld] && (
-                    <p className="text-red-500 text-sm mt-1">
-                      {formatError(fld, errors[fld])}
-                    </p>
-                  )}
+                <div key={fld}>
+                  <label className="block font-medium">
+                    {fieldLabels[fld]}:
+                  </label>
+                  <div className="flex items-center">
+                    <input
+                      name={fld}
+                      value={form.emergencyContact[key] || ''}
+                      onChange={handleChange}
+                      className={`mt-1 w-full border rounded p-2 ${
+                        errors[key] ? 'border-red-600' : ''
+                      }`}
+                    />
+                    {errors[key] && (
+                      <span
+                        className="ml-2 text-red-600 text-xs"
+                        style={{ color: 'red', fontSize: '0.75rem' }}
+                      >
+                        {formatError(key, errors[key])}
+                      </span>
+                    )}
+                  </div>
                 </div>
               )
             })}
           </fieldset>
-
-          <div>
-            <label className="block font-medium">{fieldLabels.email}</label>
-            <input
-              name="email"
-              type="email"
-              value={form.email}
-              onChange={handleChange}
-              className="mt-1 w-full border rounded p-2"
-            />
-            {errors.email && (
-              <p className="text-red-500 text-sm mt-1">
-                {formatError('email', errors.email)}
-              </p>
-            )}
-          </div>
-
-          <div>
-            <label className="block font-medium">{fieldLabels.password}</label>
-            <input
-              name="password"
-              type="password"
-              value={form.password}
-              onChange={handleChange}
-              className="mt-1 w-full border rounded p-2"
-            />
-            {errors.password && (
-              <p className="text-red-500 text-sm mt-1">
-                {formatError('password', errors.password)}
-              </p>
-            )}
-          </div>
 
           <button
             type="submit"
@@ -216,7 +222,7 @@ export default function RegisterPage() {
             {loading ? 'Creating…' : 'Create Account'}
           </button>
         </form>
-      </div>
+      </main>
     </div>
   )
 }

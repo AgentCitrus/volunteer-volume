@@ -39,8 +39,8 @@ function formatError(field, msg) {
 
 export default function ProfilePage() {
   const navigate = useNavigate()
-  const [form, setForm]     = useState(null)
-  const [errors, setErrors] = useState({})
+  const [form, setForm]       = useState(null)
+  const [errors, setErrors]   = useState({})
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState('')
 
@@ -49,15 +49,19 @@ export default function ProfilePage() {
   useEffect(() => {
     if (!token) return navigate('/login')
     fetch('http://localhost:5001/api/userdata', {
-      headers: { Authorization:`Bearer ${token}` }
+      headers: { Authorization: `Bearer ${token}` }
     })
       .then(r => r.json())
       .then(data => {
         const u = Array.isArray(data) ? data[0] : data
-        u.emergencyContact = u.emergencyContact || { name:'',phone:'',relationship:'' }
+        u.emergencyContact = u.emergencyContact || {
+          name: '',
+          phone: '',
+          relationship: ''
+        }
         setForm(u)
       })
-      .catch(() => setErrors({_global:'Failed to load profile'}))
+      .catch(() => setErrors({ _global: 'Failed to load profile' }))
   }, [token, navigate])
 
   const handleChange = e => {
@@ -71,7 +75,7 @@ export default function ProfilePage() {
     } else {
       setForm(f => ({ ...f, [name]: value }))
     }
-    setErrors({})
+    setErrors(errs => ({ ...errs, [name]: undefined }))
     setSuccess('')
   }
 
@@ -86,34 +90,33 @@ export default function ProfilePage() {
         {
           method: 'PATCH',
           headers: {
-            'Content-Type':'application/json',
-            Authorization: `Bearer ${token}`
+            'Content-Type': 'application/json',
+            Authorization:   `Bearer ${token}`
           },
           body: JSON.stringify(form)
         }
       )
       const data = await res.json()
+
       if (res.ok) {
         setSuccess('Information updated successfully!')
       } else {
         const errText = data.error || ''
         if (/validation failed/i.test(errText)) {
-          const tail = errText.split(/validation failed:?/i)[1] || ''
-          const parts = tail.split(/,\s*/)
+          const tail   = errText.split(/validation failed:?/i)[1] || ''
+          const parts  = tail.split(/,\s*/)
           const fldErr = {}
           parts.forEach(p => {
             const [key, ...rest] = p.split(/: (.+)/)
-            if (key && rest.length) {
-              fldErr[key.trim()] = rest.join(': ').trim()
-            }
+            if (key && rest.length) fldErr[key.trim()] = rest.join(': ')
           })
           setErrors(fldErr)
         } else {
-          setErrors({_global: errText || `Error ${res.status}`})
+          setErrors({ _global: errText || `Error ${res.status}` })
         }
       }
     } catch {
-      setErrors({_global:'Network error. Please try again.'})
+      setErrors({ _global: 'Network error. Please try again.' })
     }
     setLoading(false)
   }
@@ -129,12 +132,19 @@ export default function ProfilePage() {
         <h1 className="text-2xl font-bold ml-4">Edit Profile</h1>
       </header>
 
-      <main className="max-w-xl mx-auto bg-white p-6 rounded shadow space-y-4">
+      <main className="max-w-xl mx-auto bg-white p-6 rounded shadow space-y-6">
         {errors._global && (
-          <p className="text-red-500 text-sm text-center">{errors._global}</p>
+          <p
+            className="text-red-600 text-xs text-center"
+            style={{ color: 'red', fontSize: '0.75rem' }}
+          >
+            {errors._global}
+          </p>
         )}
         {success && (
-          <p className="text-green-600 text-sm text-center">{success}</p>
+          <p className="text-green-600 text-xs text-center">
+            {success}
+          </p>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -146,51 +156,71 @@ export default function ProfilePage() {
             'otherOrganizations','disabilities','email'
           ].map(name => (
             <div key={name}>
-              <label className="block font-medium">{fieldLabels[name]}</label>
-              {name === 'otherOrganizations' ? (
-                <textarea
-                  name={name}
-                  value={form[name] || ''}
-                  onChange={handleChange}
-                  className="mt-1 w-full border rounded p-2 h-20"
-                />
-              ) : (
-                <input
-                  name={name}
-                  type={name==='birthday'?'date': name==='email'?'email':'text'}
-                  value={form[name] || ''}
-                  onChange={handleChange}
-                  className="mt-1 w-full border rounded p-2"
-                />
-              )}
-              {errors[name] && (
-                <p className="text-red-500 text-sm mt-1">
-                  {formatError(name, errors[name])}
-                </p>
-              )}
+              <label className="block font-medium">
+                {fieldLabels[name]}:
+              </label>
+              <div className="flex items-center">
+                {name === 'otherOrganizations' ? (
+                  <textarea
+                    name={name}
+                    value={form[name] || ''}
+                    onChange={handleChange}
+                    className={`mt-1 w-full border rounded p-2 h-24 ${
+                      errors[name] ? 'border-red-600' : ''
+                    }`}
+                  />
+                ) : (
+                  <input
+                    type={name === 'birthday' ? 'date' : 'text'}
+                    name={name}
+                    value={form[name] || ''}
+                    onChange={handleChange}
+                    className={`mt-1 w-full border rounded p-2 ${
+                      errors[name] ? 'border-red-600' : ''
+                    }`}
+                  />
+                )}
+                {errors[name] && (
+                  <span
+                    className="ml-2 text-red-600 text-xs"
+                    style={{ color: 'red', fontSize: '0.75rem' }}
+                  >
+                    {formatError(name, errors[name])}
+                  </span>
+                )}
+              </div>
             </div>
           ))}
 
-          <fieldset className="border p-4 rounded space-y-2">
-            <legend className="font-medium">Emergency Contact</legend>
+          <fieldset className="p-4 border rounded space-y-4">
+            <legend className="font-medium">
+              Emergency Contact
+            </legend>
             {['name','phone','relationship'].map(key => {
               const fld = `emergencyContact.${key}`
               return (
-                <div key={key}>
+                <div key={fld}>
                   <label className="block font-medium">
-                    {fieldLabels[fld]}
+                    {fieldLabels[fld]}:
                   </label>
-                  <input
-                    name={fld}
-                    value={form.emergencyContact[key] || ''}
-                    onChange={handleChange}
-                    className="mt-1 w-full border rounded p-2"
-                  />
-                  {errors[fld] && (
-                    <p className="text-red-500 text-sm mt-1">
-                      {formatError(fld, errors[fld])}
-                    </p>
-                  )}
+                  <div className="flex items-center">
+                    <input
+                      name={fld}
+                      value={form.emergencyContact[key] || ''}
+                      onChange={handleChange}
+                      className={`mt-1 w-full border rounded p-2 ${
+                        errors[key] ? 'border-red-600' : ''
+                      }`}
+                    />
+                    {errors[key] && (
+                      <span
+                        className="ml-2 text-red-600 text-xs"
+                        style={{ color: 'red', fontSize: '0.75rem' }}
+                      >
+                        {formatError(key, errors[key])}
+                      </span>
+                    )}
+                  </div>
                 </div>
               )
             })}
