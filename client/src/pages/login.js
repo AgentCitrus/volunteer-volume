@@ -1,85 +1,148 @@
 // client/src/pages/login.js
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import HamburgerMenu from '../components/HamburgerMenu'
 
 export default function LoginPage() {
-  const [email, setEmail]       = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError]       = useState('')
-  const navigate                = useNavigate()
+  const navigate = useNavigate()
+  const [form, setForm]           = useState({ email: '', password: '' })
+  const [error, setError]         = useState('')
+  const [attempts, setAttempts]   = useState(0)
+  const [lastEmail, setLastEmail] = useState('')
+  const [showReset, setShowReset] = useState(false)
+  const [resetMsg, setResetMsg]   = useState('')
 
-  async function handleSubmit(e) {
+  const handleChange = e => {
+    setForm(f => ({ ...f, [e.target.name]: e.target.value }))
+    setError('')
+  }
+
+  const handleSubmit = async e => {
     e.preventDefault()
     setError('')
-
     try {
       const res = await fetch('http://localhost:5001/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify(form)
       })
-
+      const data = await res.json()
       if (res.ok) {
-        const data = await res.json()
-        localStorage.setItem('token', data.token)   // store JWT
-        navigate('/clock')                          // redirect to Clock
-      } else if (res.status === 401) {
-        setError('Invalid email or password.')
+        localStorage.setItem('token', data.token)
+        setAttempts(0)
+        navigate('/dashboard')
       } else {
-        const data = await res.json()
-        setError(data.error || `Error ${res.status}`)
+        setError(data.error || 'Login failed')
+        const count = lastEmail === form.email ? attempts + 1 : 1
+        setAttempts(count)
+        setLastEmail(form.email)
+        if (count > 2) setShowReset(true)
       }
     } catch {
-      setError('Network error. Check your connection and try again.')
+      setError('Network error')
+    }
+  }
+
+  const handleReset = async () => {
+    setResetMsg('')
+    try {
+      const res = await fetch(
+        'http://localhost:5001/api/auth/forgot-password',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: form.email })
+        }
+      )
+      const data = await res.json()
+      setResetMsg(data.message)
+    } catch {
+      setResetMsg('Network error. Try again later.')
     }
   }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-      <form onSubmit={handleSubmit} className="w-full max-w-sm bg-white p-8 rounded shadow">
-        <h2 className="text-2xl font-semibold mb-4 text-center">Sign In</h2>
+      <div className="w-full max-w-md bg-white p-6 rounded shadow">
+        <HamburgerMenu />
+        <h1 className="text-2xl font-bold mb-4">Sign In</h1>
+        {error && <p className="text-red-600 text-sm mb-2">{error}</p>}
 
-        {error && <p className="mb-4 text-red-600 text-center">{error}</p>}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block font-medium">Email:</label>
+            <input
+              name="email"
+              type="email"
+              value={form.email}
+              onChange={handleChange}
+              required
+              className="mt-1 w-full border rounded p-2 focus:ring-2 focus:ring-blue-400"
+            />
+          </div>
+          <div>
+            <label className="block font-medium">Password:</label>
+            <input
+              name="password"
+              type="password"
+              value={form.password}
+              onChange={handleChange}
+              required
+              className="mt-1 w-full border rounded p-2 focus:ring-2 focus:ring-blue-400"
+            />
+          </div>
+          <button
+            type="submit"
+            className="w-full py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            Login
+          </button>
+        </form>
 
-        <label className="block mb-4">
-          <span className="text-gray-700">Email</span>
-          <input
-            type="email"
-            value={email}
-            onChange={e => { setEmail(e.target.value); setError('') }}
-            className="mt-1 block w-full border rounded p-2"
-            placeholder="you@example.com"
-            required
-          />
-        </label>
-
-        <label className="block mb-6">
-          <span className="text-gray-700">Password</span>
-          <input
-            type="password"
-            value={password}
-            onChange={e => { setPassword(e.target.value); setError('') }}
-            className="mt-1 block w-full border rounded p-2"
-            placeholder="••••••••"
-            required
-          />
-        </label>
-
-        <button
-          type="submit"
-          className="w-full py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-        >
-          Login
-        </button>
-
-        <p className="mt-4 text-center text-sm">
+        <p className="mt-4 text-sm">
           Don’t have an account?{' '}
-          <a href="/register" className="text-blue-600 hover:underline">
+          <button
+            onClick={() => navigate('/register')}
+            className="text-blue-600 hover:underline"
+          >
             Create one
-          </a>
+          </button>
         </p>
-      </form>
+      </div>
+
+      {showReset && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white p-6 rounded shadow-lg w-full max-w-sm">
+            <h2 className="text-xl font-semibold mb-2">Forgot Password?</h2>
+            <p className="mb-4 text-sm">
+              We’ve detected multiple failed attempts. Enter your email for a reset link.
+            </p>
+            <input
+              type="email"
+              value={form.email}
+              disabled
+              className="w-full border rounded p-2 bg-gray-100 mb-4"
+            />
+            {resetMsg && (
+              <p className="mb-4 text-green-600 text-sm">{resetMsg}</p>
+            )}
+            <div className="flex justify-end space-x-2">
+              <button
+                onClick={() => setShowReset(false)}
+                className="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleReset}
+                className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700"
+              >
+                Send Reset Link
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
