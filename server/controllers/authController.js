@@ -1,9 +1,9 @@
 // server/controllers/authController.js
 require('dotenv').config();
-const bcrypt  = require('bcryptjs');
-const crypto  = require('crypto');
-const jwt     = require('jsonwebtoken');
-const UserData = require('../models/userdataModel');
+const bcrypt    = require('bcryptjs');
+const crypto    = require('crypto');
+const jwt       = require('jsonwebtoken');
+const UserData  = require('../models/userdataModel');
 const sendEmail = require('../utils/sendEmail');
 
 /* helper: convert csv → array, keep arrays intact */
@@ -14,7 +14,7 @@ const listify = v =>
     ? v.split(',').map(s => s.trim()).filter(Boolean)
     : [];
 
-/* ───────────────────────── REGISTER ───────────────────────── */
+/* -------- REGISTRATION -------- */
 exports.register = async (req, res) => {
   try {
     const {
@@ -25,174 +25,172 @@ exports.register = async (req, res) => {
       ...profile
     } = req.body;
 
-    if (await UserData.findOne({ email }))
-      return res.status(400).json({ error: 'E-mail already registered' });
+    // Only block if an existing account is already verified
+    const existing = await UserData.findOne({ email });
+    if (existing) {
+      if (existing.emailVerified) {
+        return res
+          .status(400)
+          .json({ error: 'E-mail already registered' });
+      } else {
+        // Remove stale unverified account so user can re-register
+        await UserData.deleteOne({ _id: existing._id });
+      }
+    }
 
+    // Hash password
     const passwordHash = await bcrypt.hash(password, 10);
 
-    /* create verify-email token */
+    // Create e-mail verification token
     const rawVerify = crypto.randomBytes(32).toString('hex');
     const hashedVerify = crypto
       .createHash('sha256')
       .update(rawVerify)
       .digest('hex');
-      const verifyLink = `${process.env.API_URL || 'http://localhost:5001'}/api/auth/verify-email/${rawVerify}`;
+    const verifyLink = `${process.env.API_URL ||
+      'http://localhost:5001'}/api/auth/verify-email/${rawVerify}`;
 
-    /* save user */
+    // Create user record
     const user = await UserData.create({
       ...profile,
       email,
       passwordHash,
-      languagesSpoken:   listify(languagesSpoken),
-      otherOrganizations:listify(otherOrganizations),
+      languagesSpoken:    listify(languagesSpoken),
+      otherOrganizations: listify(otherOrganizations),
       verifyEmailToken:   hashedVerify,
-      verifyEmailExpires: Date.now() + 24 * 3600_000, // 24 h
-      emailVerified: false
+      verifyEmailExpires: Date.now() + 24 * 3600_000, // 24h
+      emailVerified:      false
     });
 
-    /* send confirmation e-mail */
-    const html = `
-      <p>Hello ${user.firstName || ''},</p>
-      <p>Thanks for creating a VolunteerVolume account!</p>
-      <p><a href="${verifyLink}">Click here to confirm your e-mail address.</a></p>
-      <p>This link expires in 24&nbsp;hours.</p>
-    `;
-    await sendEmail(
-      email,
-      'Confirm your VolunteerVolume account',
-      html
-    );
+    // Send verification e-mail
+    await sendEmail({
+      to: email,
+      subject: 'Confirm your e-mail',
+      html: `Please click <a href="${verifyLink}">here</a> to verify your e-mail.`
+    });
 
-    res
+    return res
       .status(201)
-      .json({ message: 'Account created — check your e-mail to confirm.' });
+      .json({ message: 'Account created. Check your e-mail to confirm.' });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error('Register error:', err);
+    return res.status(500).json({ error: 'Server error' });
   }
 };
 
-/* ─────────────────────── VERIFY-EMAIL ─────────────────────── */
+/* -------- VERIFY EMAIL -------- */
 exports.verifyEmail = async (req, res) => {
-  const { token } = req.params;
   try {
+    const { token } = req.params;
     const hashed = crypto.createHash('sha256').update(token).digest('hex');
+
     const user = await UserData.findOne({
-      verifyEmailToken: hashed,
+      verifyEmailToken:   hashed,
       verifyEmailExpires: { $gt: Date.now() }
     });
-    if (!user) return res.status(400).send('Link invalid or expired.');
 
-    user.emailVerified = true;
-    user.verifyEmailToken = undefined;
-    user.verifyEmailExpires = undefined;
+    if (!user) {
+      return res
+        .status(400)
+        .json({ error: 'Link invalid or expired' });
+    }
+
+    user.emailVerified     = true;
+    user.verifyEmailToken  = undefined;
+    user.verifyEmailExpires= undefined;
     await user.save();
 
-    /* (optional) auto-log-in */
-    const jwtToken = jwt.sign(
-      { _id: user._id, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: '7d' }
-    );
-    res.json({ token: jwtToken, message: 'E-mail verified — welcome!' });
+    res.json({ message: 'E-mail verified — you can now log in.' });
   } catch (err) {
-    console.error(err);
-    res.status(500).send('Server error.');
+    console.error('Verify email error:', err);
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
-/* ────────────────────────── LOGIN ─────────────────────────── */
+/* -------- LOGIN -------- */
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
     const user = await UserData.findOne({ email });
-    if (!user) return res.status(401).json({ error: 'Invalid credentials' });
-
+    if (!user)
+      return res.status(400).json({ error: 'Invalid credentials' });
     if (!user.emailVerified)
-      return res.status(403).json({ error: 'Please confirm your e-mail first' });
+      return res
+        .status(400)
+        .json({ error: 'Please verify your e-mail first' });
 
-    const ok = await bcrypt.compare(password, user.passwordHash);
-    if (!ok) return res.status(401).json({ error: 'Invalid credentials' });
+    const isMatch = await bcrypt.compare(password, user.passwordHash);
+    if (!isMatch)
+      return res.status(400).json({ error: 'Invalid credentials' });
 
     const token = jwt.sign(
       { _id: user._id, role: user.role },
       process.env.JWT_SECRET,
-      { expiresIn: '7d' }
+      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
     );
+
     res.json({ token });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error('Login error:', err);
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
-/* ──────────────────── FORGOT-PASSWORD ─────────────────────── */
+/* -------- FORGOT PASSWORD -------- */
 exports.forgotPassword = async (req, res) => {
-  const { email } = req.body;
-
   try {
+    const { email } = req.body;
     const user = await UserData.findOne({ email });
-
-    /* always respond 200 */
-    if (!user) {
+    if (!user)
       return res.json({
-        message:
-          'If that address is registered, a reset link has been sent to it.'
+        message: 'If the address exists, a link was sent.'
       });
-    }
 
-    /* generate reset token */
-    const rawReset = crypto.randomBytes(32).toString('hex');
-    const hashedReset = crypto.createHash('sha256').update(rawReset).digest('hex');
+    const raw = crypto.randomBytes(32).toString('hex');
+    const hashed = crypto.createHash('sha256').update(raw).digest('hex');
+    user.resetPasswordToken   = hashed;
+    user.resetPasswordExpires = Date.now() + 3600000; // 1h
+    await user.save();
 
-    user.resetPasswordToken   = hashedReset;
-    user.resetPasswordExpires = Date.now() + 60 * 60 * 1000; // 1 h
-    await user.save({ validateBeforeSave: false });
-
-    const resetURL = `${
-      process.env.FRONTEND_URL || 'http://localhost:3000'
-    }/reset-password/${rawReset}`;
-
-    const html = `
-      <p>Hello ${user.firstName || ''},</p>
-      <p>You requested a password reset for your VolunteerVolume account.</p>
-      <p><a href="${resetURL}">Click here to choose a new password</a> (valid 1 hour).</p>
-      <p>If you didn’t ask for this, you can ignore this email.</p>
-    `;
-    await sendEmail(email, 'VolunteerVolume – Reset your password', html);
-
-    res.json({
-      message:
-        'If that address is registered, a reset link has been sent to it.'
+    const link = `${process.env.API_URL ||
+      'http://localhost:5001'}/api/auth/reset-password/${raw}`;
+    await sendEmail({
+      to: email,
+      subject: 'Reset your password',
+      html: `Click <a href="${link}">here</a> to reset your password.`
     });
+
+    res.json({ message: 'If the address exists, a link was sent.' });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error('Forgot password error:', err);
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
-/* ─────────────────────── RESET-PASSWORD ───────────────────── */
+/* -------- RESET PASSWORD -------- */
 exports.resetPassword = async (req, res) => {
-  const { token } = req.params;
-  const { password } = req.body;
-
   try {
+    const { token }    = req.params;
+    const { password } = req.body;
     const hashed = crypto.createHash('sha256').update(token).digest('hex');
+
     const user = await UserData.findOne({
-      resetPasswordToken: hashed,
+      resetPasswordToken:   hashed,
       resetPasswordExpires: { $gt: Date.now() }
     });
     if (!user)
-      return res.status(400).json({ error: 'Token is invalid or has expired' });
+      return res
+        .status(400)
+        .json({ error: 'Token is invalid or has expired' });
 
-    user.passwordHash = await bcrypt.hash(password, 10);
-    user.resetPasswordToken = undefined;
+    user.passwordHash         = await bcrypt.hash(password, 10);
+    user.resetPasswordToken   = undefined;
     user.resetPasswordExpires = undefined;
     await user.save();
 
-    res.json({ message: 'Password updated – you can now log in' });
+    res.json({ message: 'Password updated — you can now log in.' });
   } catch (err) {
-    console.error(err);
+    console.error('Reset password error:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 };

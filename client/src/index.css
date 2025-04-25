@@ -1,9 +1,12 @@
-/* google font */
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;800&family=VT323&display=swap');
-@import '@fontsource/inter/index.css';
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* any custom CSS after this line
+
+/* google font */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;800&family=VT323&display=swap');
+@import '@fontsource/inter/index.css';
 
 /* layout */
 :root {
