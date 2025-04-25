@@ -1,14 +1,13 @@
-// client/src/components/HamburgerMenu.js
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 
 export default function HamburgerMenu() {
-  const [open, setOpen]   = useState(false)
-  const menuRef           = useRef(null)
-  const navigate          = useNavigate()
-  const { pathname }      = useLocation()
+  const [open, setOpen] = useState(false)
+  const menuRef = useRef(null)
+  const navigate = useNavigate()
+  const { pathname } = useLocation()
 
-  // Close when clicking outside
+  // close on outside click
   useEffect(() => {
     const handler = e => {
       if (open && menuRef.current && !menuRef.current.contains(e.target)) {
@@ -19,11 +18,24 @@ export default function HamburgerMenu() {
     return () => document.removeEventListener('mousedown', handler)
   }, [open])
 
-  // All the authenticated pages you want in your menu:
+  // decode JWT to get role
+  const token = localStorage.getItem('token')
+  let role = ''
+  if (token) {
+    try {
+      role = JSON.parse(window.atob(token.split('.')[1])).role
+    } catch (err) {
+      console.error('JWT decode failed', err)
+    }
+  }
+
   const items = [
-    { label: 'Time Clock', path: '/clock' },
-    { label: 'My Profile', path: '/profile' },
-    { label: 'Dashboard',  path: '/dashboard' },
+    { label: 'Time Clock',      path: '/clock' },
+    { label: 'Dashboard',       path: '/dashboard' },
+    ...(role === 'admin'
+      ? [{ label: 'Admin Dashboard', path: '/admin' }]
+      : []),
+    { label: 'My Profile',      path: '/profilepage' },
   ]
 
   const logout = () => {
@@ -52,7 +64,10 @@ export default function HamburgerMenu() {
             .map(item => (
               <button
                 key={item.path}
-                onClick={() => { setOpen(false); navigate(item.path) }}
+                onClick={() => {
+                  setOpen(false)
+                  navigate(item.path)
+                }}
                 className="block w-full text-left px-4 py-2 hover:bg-gray-100"
               >
                 {item.label}

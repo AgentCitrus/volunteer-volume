@@ -1,4 +1,3 @@
-// server/controllers/logdataController.js
 const LogData = require('../models/logdataModel');
 
 /* ───────────  POST /api/logdata  ───────────  */
@@ -7,7 +6,7 @@ exports.addLogData = async (req, res) => {
     const { checkIn, checkOut, tasksDesc } = req.body;
 
     const entry = await LogData.create({
-      user: req.user._id,     // link to current volunteer
+      user: req.user._id,
       checkIn,
       checkOut,
       tasksDesc
@@ -15,33 +14,35 @@ exports.addLogData = async (req, res) => {
 
     res.status(201).json(entry);
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    res.status(500).json({ error: err.message });
   }
 };
 
-/* ───────────  GET /api/logdata  ───────────  (list) */
+/* ───────────  GET /api/logdata  ───────────  */
 exports.getAllLogData = async (req, res) => {
   try {
     const filter = req.user.role === 'admin'
       ? {}
       : { user: req.user._id };
 
-    const logs = await LogData.find(filter).sort('-createdAt');
+    const logs = await LogData.find(filter)
+      .populate('user', 'firstName lastName email')
+      .sort('-createdAt');
+
     res.json(logs);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-/* ───────────  GET /api/logdata/:id  ───────────  (single) */
+/* ───────────  GET /api/logdata/:id  ───────────  */
 exports.getLogData = async (req, res) => {
   try {
-    const log = await LogData.findById(req.params.id);
+    const log = await LogData.findById(req.params.id)
+      .populate('user', 'firstName lastName email');
 
     if (!log) return res.status(404).json({ error: 'Not found' });
-
-    // non‑admin can only access their own log
-    if (req.user.role !== 'admin' && log.user.toString() !== req.user._id.toString()) {
+    if (req.user.role !== 'admin' && log.user._id.toString() !== req.user._id.toString()) {
       return res.status(403).json({ error: 'Forbidden' });
     }
 
@@ -51,35 +52,37 @@ exports.getLogData = async (req, res) => {
   }
 };
 
-/* ───────────  PATCH /api/logdata/:id  ─────────── */
+/* ───────────  PATCH /api/logdata/:id  ───────────  */
 exports.updateLogData = async (req, res) => {
   try {
     const log = await LogData.findById(req.params.id);
     if (!log) return res.status(404).json({ error: 'Not found' });
-
     if (req.user.role !== 'admin' && log.user.toString() !== req.user._id.toString()) {
       return res.status(403).json({ error: 'Forbidden' });
     }
 
-    Object.assign(log, req.body);
+    const { checkIn, checkOut, tasksDesc } = req.body;
+    log.checkIn = checkIn;
+    log.checkOut = checkOut;
+    log.tasksDesc = tasksDesc;
     await log.save();
 
-    res.json(log);
+    const updated = await LogData.findById(log._id)
+      .populate('user', 'firstName lastName email');
+    res.json(updated);
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    res.status(500).json({ error: err.message });
   }
 };
 
-/* ───────────  DELETE /api/logdata/:id  ─────────── */
+/* ───────────  DELETE /api/logdata/:id  ───────────  */
 exports.deleteLogData = async (req, res) => {
   try {
     const log = await LogData.findById(req.params.id);
     if (!log) return res.status(404).json({ error: 'Not found' });
-
     if (req.user.role !== 'admin' && log.user.toString() !== req.user._id.toString()) {
       return res.status(403).json({ error: 'Forbidden' });
     }
-
     await log.deleteOne();
     res.status(204).end();
   } catch (err) {
