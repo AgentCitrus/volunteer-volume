@@ -1,24 +1,17 @@
 import { Link } from 'react-router-dom';
 
-/**
- * NOTE
- * ────────────────────────────────────────────────────────────
- * 1. Uses ONLY standard Tailwind classes.
- * 2. A full-viewport flex wrapper guarantees perfect centering.
- * 3. Card is fixed width on small screens, grows up to 32rem.
- */
+/* absolutely-centred card */
 export default function Welcome() {
   return (
     <div className="h-screen w-screen flex items-center justify-center bg-gray-100">
-      {/* CARD */}
       <div className="w-full max-w-xl bg-white rounded-xl shadow-lg px-8 py-12 text-center">
         <h1 className="text-4xl font-extrabold text-gray-800 mb-6">
-          Volunteer&nbsp;Central
+          Volunteer Central
         </h1>
 
-        <p className="text-gray-600 text-lg mb-10">
-          A simple way for volunteers and admins to coordinate effort, log
-          hours, and assign work—without the clutter.
+        <p className="text-gray-600 text-lg mb-10 leading-relaxed">
+          A straightforward platform for volunteers and admins to coordinate
+          effort, log hours, and assign work — without the clutter.
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -40,7 +33,7 @@ export default function Welcome() {
                        hover:bg-indigo-50 focus:outline-none
                        focus:ring focus:ring-indigo-200"
           >
-            Sign&nbsp;Up
+            Sign Up
           </Link>
         </div>
       </div>

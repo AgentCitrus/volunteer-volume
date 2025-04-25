@@ -1,12 +1,10 @@
 import { Link } from 'react-router-dom';
 
-/* ---------- small helpers ---------- */
 const baseBtn =
-  'inline-flex justify-center items-center rounded-md px-4 py-2 text-sm font-medium ' +
-  'focus:outline-none focus:ring';
+  'inline-flex justify-center items-center rounded-md px-4 py-2 text-sm font-medium focus:outline-none focus:ring disabled:opacity-60';
 
 export const Card = ({ children, className = '' }) => (
-  <div className={`bg-white p-8 rounded-xl shadow-card ${className}`}>
+  <div className={`bg-white p-8 rounded-xl shadow-lg ${className}`}>
     {children}
   </div>
 );
