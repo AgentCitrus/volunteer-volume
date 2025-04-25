@@ -24,7 +24,7 @@ exports.register = async (req, res) => {
   }
 };
 
-/* ───────── LOGIN ───────── */
+/* ───────── LOGIN (includes role in JWT) ───────── */
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -34,9 +34,12 @@ exports.login = async (req, res) => {
     const ok = await bcrypt.compare(password, user.passwordHash);
     if (!ok) return res.status(401).json({ error: 'Invalid credentials' });
 
-    const token = jwt.sign({ _id: user._id }, process.env.JWT_SECRET, {
-      expiresIn: '7d'
-    });
+    /*  embed role so the client knows if the user is an admin  */
+    const token = jwt.sign(
+      { _id: user._id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: '7d' }
+    );
 
     res.json({ token });
   } catch (err) {
@@ -52,7 +55,7 @@ exports.forgotPassword = async (req, res) => {
   try {
     const user = await UserData.findOne({ email });
 
-    /*  Always return 200 to avoid leaking which emails exist  */
+    /* always respond 200 so attackers can’t probe for addresses */
     if (!user) {
       return res.json({
         message:
@@ -60,19 +63,19 @@ exports.forgotPassword = async (req, res) => {
       });
     }
 
-    /* 1 – create & hash a token */
-    const rawToken = crypto.randomBytes(32).toString('hex');
+    /* 1 – create and hash a token */
+    const rawToken    = crypto.randomBytes(32).toString('hex');
     const hashedToken = crypto
       .createHash('sha256')
       .update(rawToken)
       .digest('hex');
 
     /* 2 – save hashed token + 1-hour expiry */
-    user.resetPasswordToken = hashedToken;
+    user.resetPasswordToken   = hashedToken;
     user.resetPasswordExpires = Date.now() + 60 * 60 * 1000;
     await user.save({ validateBeforeSave: false });
 
-    /* 3 – build reset URL */
+    /* 3 – build front-end link */
     const resetURL = `${
       process.env.FRONTEND_URL || 'http://localhost:3000'
     }/reset-password/${rawToken}`;
@@ -118,7 +121,7 @@ exports.resetPassword = async (req, res) => {
       return res.status(400).json({ error: 'Token is invalid or has expired' });
 
     user.passwordHash = await bcrypt.hash(password, 10);
-    user.resetPasswordToken = undefined;
+    user.resetPasswordToken   = undefined;
     user.resetPasswordExpires = undefined;
     await user.save();
 

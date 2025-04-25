@@ -1,56 +1,69 @@
 // client/src/components/HamburgerMenu.js
-import { useState, useRef, useEffect } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
-import { Menu as MenuIcon, X as CloseIcon } from 'lucide-react'
+import { useState, useRef, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Menu as MenuIcon, X as CloseIcon } from 'lucide-react';
 
 export default function HamburgerMenu() {
-  const [open, setOpen] = useState(false)
-  const wrapperRef      = useRef(null)
-  const navigate        = useNavigate()
-  const { pathname }    = useLocation()
+  const [open, setOpen] = useState(false);
+  const wrapperRef  = useRef(null);
+  const navigate    = useNavigate();
+  const { pathname } = useLocation();
 
-  const logout = () => {
-    localStorage.removeItem('token')
-    navigate('/login')
+  /* ───── decode role from JWT ───── */
+  let role = '';
+  const token = localStorage.getItem('token');
+  if (token) {
+    try {
+      role = JSON.parse(atob(token.split('.')[1])).role;
+    } catch { /* ignore bad tokens */ }
   }
 
+  const logout = () => {
+    localStorage.removeItem('token');
+    navigate('/login');
+  };
+
+  /* base tabs for every authenticated user */
   const tabs = [
     { name: 'Time Clock', path: '/clock' },
     { name: 'Dashboard',  path: '/dashboard' },
     { name: 'My Profile', path: '/userdata' }
-  ]
+  ];
 
-  // Close menu when clicking outside the whole wrapper
+  /* add the admin page if the user is an admin */
+  if (role === 'admin') {
+    tabs.push({ name: 'Admin', path: '/admin' });
+  }
+
+  /* ───── click-outside handler ───── */
   useEffect(() => {
     const handleClickOutside = e => {
       if (open && wrapperRef.current && !wrapperRef.current.contains(e.target)) {
-        setOpen(false)
+        setOpen(false);
       }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [open])
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [open]);
 
+  /* ───── UI ───── */
   return (
     <div ref={wrapperRef} className="relative inline-block">
-      <button
-        onClick={() => setOpen(o => !o)}
-        className="p-2 focus:outline-none"
-      >
-        {open ? <CloseIcon size={24}/> : <MenuIcon size={24}/>}
+      <button onClick={() => setOpen(o => !o)} className="p-2 focus:outline-none">
+        {open ? <CloseIcon size={24} /> : <MenuIcon size={24} />}
       </button>
 
       {open && (
         <div className="absolute right-0 mt-2 w-48 bg-white shadow-lg rounded divide-y divide-gray-200">
           <div className="py-1">
             {tabs
-              .filter(tab => tab.path !== pathname)
+              .filter(tab => tab.path !== pathname)        /* hide current page */
               .map(tab => (
                 <button
                   key={tab.path}
                   onClick={() => {
-                    setOpen(false)
-                    navigate(tab.path)
+                    setOpen(false);
+                    navigate(tab.path);
                   }}
                   className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
                 >
@@ -58,6 +71,7 @@ export default function HamburgerMenu() {
                 </button>
               ))}
           </div>
+
           <div className="border-t border-gray-200" />
           <div className="py-1">
             <button
@@ -70,5 +84,5 @@ export default function HamburgerMenu() {
         </div>
       )}
     </div>
-  )
+  );
 }
