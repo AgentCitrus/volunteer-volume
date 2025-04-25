@@ -1,28 +1,32 @@
 // client/src/App.js
-import React from 'react'
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 
-import LoginPage         from './pages/login'
-import RegisterPage      from './pages/register'
-import ResetPasswordPage from './pages/ResetPasswordPage'
+import LandingPage       from './pages/landing';
+import LoginPage         from './pages/login';
+import RegisterPage      from './pages/register';
+import ResetPasswordPage from './pages/ResetPasswordPage';
+import VerifyEmailPage   from './pages/VerifyEmailPage';   // if you added it
 
-import ClockPage     from './pages/clock'
-import DashboardPage from './pages/dashboard'
-import ProfilePage   from './pages/profilepage'
-import AdminPage     from './pages/admin'
+import ClockPage     from './pages/clock';
+import DashboardPage from './pages/dashboard';
+import ProfilePage   from './pages/profilepage';
+import AdminPage     from './pages/admin';
 
-import ProtectedRoute from './components/ProtectedRoute'
+import ProtectedRoute from './components/ProtectedRoute';
 
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Public */}
-        <Route path="/login"             element={<LoginPage />} />
-        <Route path="/register"          element={<RegisterPage />} />
+        {/* ───────── PUBLIC ───────── */}
+        <Route path="/"                   element={<LandingPage />} />
+        <Route path="/login"              element={<LoginPage />} />
+        <Route path="/register"           element={<RegisterPage />} />
         <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
+        <Route path="/verify-email/:token"   element={<VerifyEmailPage />} />
 
-        {/* Authenticated */}
+        {/* ───────── AUTHENTICATED ───────── */}
         <Route
           path="/clock"
           element={
@@ -48,7 +52,7 @@ export default function App() {
           }
         />
 
-        {/* Admin only */}
+        {/* ───────── ADMIN ONLY ───────── */}
         <Route
           path="/admin"
           element={
@@ -58,9 +62,9 @@ export default function App() {
           }
         />
 
-        {/* Fallback */}
-        <Route path="*" element={<Navigate to="/login" replace />} />
+        {/* fallback */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
-  )
+  );
 }

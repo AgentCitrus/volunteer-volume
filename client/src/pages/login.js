@@ -1,138 +1,68 @@
-// client/src/pages/login.js
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import HamburgerMenu from '../components/HamburgerMenu';
+import { Card, Input, Button } from '../components/UI';
 
 export default function LoginPage() {
-  const navigate = useNavigate();
+  const navigate      = useNavigate();
+  const [form, setForm] = useState({ email: '', password: '' });
+  const [err, setErr]   = useState('');
 
-  /* ───── login form ───── */
-  const [loginForm, setLoginForm] = useState({ email: '', password: '' });
-  const [loginError, setLoginError] = useState('');
-
-  /* ───── reset-password form ───── */
-  const [showReset,   setShowReset]   = useState(false);
-  const [resetEmail,  setResetEmail]  = useState('');
-  const [resetMsg,    setResetMsg]    = useState('');
-
-  /* ─────────────────────────────── */
-  const handleLoginChange = e =>
-    setLoginForm(f => ({ ...f, [e.target.name]: e.target.value }));
-
-  const handleLoginSubmit = async e => {
+  const submit = async e => {
     e.preventDefault();
-    setLoginError('');
+    setErr('');
     try {
       const res = await fetch('http://localhost:5001/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(loginForm)
+        body: JSON.stringify(form)
       });
       const data = await res.json();
-
       if (res.ok) {
         localStorage.setItem('token', data.token);
         navigate('/clock');
-      } else {
-        setLoginError(data.error || 'Login failed');
-      }
+      } else setErr(data.error || 'Login failed');
     } catch {
-      setLoginError('Network error – try again');
+      setErr('Network error – try again');
     }
   };
 
-  /* ───────── forgot-password ───────── */
-  const handleResetSubmit = async () => {
-    setResetMsg('');
-    try {
-      const res = await fetch(
-        'http://localhost:5001/api/auth/forgot-password',
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: resetEmail })
-        }
-      );
-      const data = await res.json();
-      setResetMsg(data.message || 'If that address is registered, we sent a link.');
-    } catch {
-      setResetMsg('Network error – try again');
-    }
-  };
-
-  /* ───────────────── UI ───────────────── */
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
-      <HamburgerMenu />
-      <div className="w-full max-w-sm bg-white p-6 rounded shadow">
-        <h1 className="text-2xl font-semibold mb-6">Log In</h1>
+    <div className="min-h-screen flex items-center justify-center bg-brand-50">
+      <Card className="w-80">
+        <h1 className="text-2xl font-semibold text-brand-700 mb-6 text-center">
+          Sign In
+        </h1>
 
-        {/* ───── Login form ───── */}
-        <form onSubmit={handleLoginSubmit} className="space-y-4">
-          <input
+        <form onSubmit={submit} className="space-y-4">
+          <Input
+            placeholder="Email"
             type="email"
-            name="email"
-            placeholder="E-mail"
-            value={loginForm.email}
-            onChange={handleLoginChange}
+            value={form.email}
+            onChange={e => setForm({ ...form, email: e.target.value })}
             required
-            className="w-full border p-2 rounded"
           />
-          <input
-            type="password"
-            name="password"
+          <Input
             placeholder="Password"
-            value={loginForm.password}
-            onChange={handleLoginChange}
+            type="password"
+            value={form.password}
+            onChange={e => setForm({ ...form, password: e.target.value })}
             required
-            className="w-full border p-2 rounded"
           />
 
-          {loginError && <p className="text-red-600 text-sm">{loginError}</p>}
+          {err && <p className="text-sm text-red-600">{err}</p>}
 
-          <button
-            type="submit"
-            className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
-          >
-            Log In
-          </button>
+          <Button type="submit" className="w-full">
+            Sign In
+          </Button>
         </form>
 
-        {/* ───── Forgot-password toggle ───── */}
-        <button
-          onClick={() => setShowReset(s => !s)}
-          className="mt-3 text-sm text-blue-600 hover:underline"
-        >
-          Forgot your password?
-        </button>
-
-        {showReset && (
-          <div className="mt-4 space-y-3">
-            <input
-              type="email"
-              placeholder="Enter your e-mail"
-              value={resetEmail}
-              onChange={e => setResetEmail(e.target.value)}
-              className="w-full border p-2 rounded"
-            />
-            <button
-              onClick={handleResetSubmit}
-              className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
-            >
-              Send reset link
-            </button>
-            {resetMsg && <p className="text-sm">{resetMsg}</p>}
-          </div>
-        )}
-
-        {/* ───── Create-account link ───── */}
-        <p className="mt-6 text-sm">
+        <p className="text-sm mt-4 text-center">
           Don’t have an account?{' '}
-          <Link to="/register" className="text-blue-600 hover:underline">
-            Create one
+          <Link to="/register" className="text-brand-600 hover:underline">
+            Sign Up
           </Link>
         </p>
-      </div>
+      </Card>
     </div>
   );
 }
