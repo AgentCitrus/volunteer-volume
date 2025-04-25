@@ -1,139 +1,138 @@
 // client/src/pages/login.js
-import React, { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import HamburgerMenu from '../components/HamburgerMenu'
+import React, { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import HamburgerMenu from '../components/HamburgerMenu';
 
 export default function LoginPage() {
-  const navigate = useNavigate()
-  const [form, setForm]         = useState({ email: '', password: '' })
-  const [error, setError]       = useState('')
-  const [attempts, setAttempts] = useState(0)
-  const [lastEmail, setLastEmail] = useState('')
-  const [showReset, setShowReset] = useState(false)
-  const [resetMsg, setResetMsg]   = useState('')
+  const navigate = useNavigate();
 
-  const handleChange = e => {
-    setForm(f => ({ ...f, [e.target.name]: e.target.value }))
-    setError('')
-  }
+  /* ───── login form ───── */
+  const [loginForm, setLoginForm] = useState({ email: '', password: '' });
+  const [loginError, setLoginError] = useState('');
 
-  const handleSubmit = async e => {
-    e.preventDefault()
-    setError('')
+  /* ───── reset-password form ───── */
+  const [showReset,   setShowReset]   = useState(false);
+  const [resetEmail,  setResetEmail]  = useState('');
+  const [resetMsg,    setResetMsg]    = useState('');
+
+  /* ─────────────────────────────── */
+  const handleLoginChange = e =>
+    setLoginForm(f => ({ ...f, [e.target.name]: e.target.value }));
+
+  const handleLoginSubmit = async e => {
+    e.preventDefault();
+    setLoginError('');
     try {
-      const res  = await fetch('http://localhost:5001/api/auth/login', {
+      const res = await fetch('http://localhost:5001/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form)
-      })
-      const data = await res.json()
+        body: JSON.stringify(loginForm)
+      });
+      const data = await res.json();
 
       if (res.ok) {
-        localStorage.setItem('token', data.token)
-        setAttempts(0)
-        // ← now sends you straight to Time Clock
-        navigate('/clock')
+        localStorage.setItem('token', data.token);
+        navigate('/clock');
       } else {
-        setError(data.error || 'Login failed')
-        const count = lastEmail === form.email ? attempts + 1 : 1
-        setAttempts(count)
-        setLastEmail(form.email)
-        if (count > 2) setShowReset(true)
+        setLoginError(data.error || 'Login failed');
       }
     } catch {
-      setError('Network error')
+      setLoginError('Network error – try again');
     }
-  }
+  };
 
-  const handleReset = async () => {
-    setResetMsg('')
+  /* ───────── forgot-password ───────── */
+  const handleResetSubmit = async () => {
+    setResetMsg('');
     try {
       const res = await fetch(
         'http://localhost:5001/api/auth/forgot-password',
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: form.email })
+          body: JSON.stringify({ email: resetEmail })
         }
-      )
-      const data = await res.json()
-      setResetMsg(data.message)
+      );
+      const data = await res.json();
+      setResetMsg(data.message || 'If that address is registered, we sent a link.');
     } catch {
-      setResetMsg('Network error. Try again later.')
+      setResetMsg('Network error – try again');
     }
-  }
+  };
 
+  /* ───────────────── UI ───────────────── */
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-      <div className="w-full max-w-md bg-white p-6 rounded-lg shadow">
-        <HamburgerMenu />
-        <h1 className="text-2xl font-bold mb-4">Sign In</h1>
-        {error && <p className="text-red-600 text-sm mb-2">{error}</p>}
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
+      <HamburgerMenu />
+      <div className="w-full max-w-sm bg-white p-6 rounded shadow">
+        <h1 className="text-2xl font-semibold mb-6">Log In</h1>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block font-medium">Email:</label>
-            <input
-              name="email"
-              type="email"
-              value={form.email}
-              onChange={handleChange}
-              required
-              className="mt-1 w-full border rounded p-2 focus:ring-2 focus:ring-blue-400"
-            />
-          </div>
-          <div>
-            <label className="block font-medium">Password:</label>
-            <input
-              name="password"
-              type="password"
-              value={form.password}
-              onChange={handleChange}
-              required
-              className="mt-1 w-full border rounded p-2 focus:ring-2 focus:ring-blue-400"
-            />
-          </div>
+        {/* ───── Login form ───── */}
+        <form onSubmit={handleLoginSubmit} className="space-y-4">
+          <input
+            type="email"
+            name="email"
+            placeholder="E-mail"
+            value={loginForm.email}
+            onChange={handleLoginChange}
+            required
+            className="w-full border p-2 rounded"
+          />
+          <input
+            type="password"
+            name="password"
+            placeholder="Password"
+            value={loginForm.password}
+            onChange={handleLoginChange}
+            required
+            className="w-full border p-2 rounded"
+          />
+
+          {loginError && <p className="text-red-600 text-sm">{loginError}</p>}
+
           <button
             type="submit"
-            className="w-full py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
           >
-            Login
+            Log In
           </button>
         </form>
 
+        {/* ───── Forgot-password toggle ───── */}
+        <button
+          onClick={() => setShowReset(s => !s)}
+          className="mt-3 text-sm text-blue-600 hover:underline"
+        >
+          Forgot your password?
+        </button>
+
         {showReset && (
-          <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-            <div className="bg-white p-6 rounded shadow-lg w-full max-w-sm">
-              <h2 className="text-xl font-semibold mb-2">Forgot Password?</h2>
-              <p className="mb-4 text-sm">
-                We’ve detected multiple failed attempts. Enter your email for a reset link.
-              </p>
-              <input
-                type="email"
-                className="w-full mb-4 p-2 border rounded"
-                placeholder="Your email"
-                value={form.email}
-                onChange={handleChange}
-              />
-              <div className="flex justify-end space-x-2">
-                <button
-                  onClick={() => setShowReset(false)}
-                  className="px-4 py-2 rounded border"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleReset}
-                  className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700"
-                >
-                  Send Reset Link
-                </button>
-              </div>
-              {resetMsg && <p className="mt-3 text-sm">{resetMsg}</p>}
-            </div>
+          <div className="mt-4 space-y-3">
+            <input
+              type="email"
+              placeholder="Enter your e-mail"
+              value={resetEmail}
+              onChange={e => setResetEmail(e.target.value)}
+              className="w-full border p-2 rounded"
+            />
+            <button
+              onClick={handleResetSubmit}
+              className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
+            >
+              Send reset link
+            </button>
+            {resetMsg && <p className="text-sm">{resetMsg}</p>}
           </div>
         )}
+
+        {/* ───── Create-account link ───── */}
+        <p className="mt-6 text-sm">
+          Don’t have an account?{' '}
+          <Link to="/register" className="text-blue-600 hover:underline">
+            Create one
+          </Link>
+        </p>
       </div>
     </div>
-  )
+  );
 }
