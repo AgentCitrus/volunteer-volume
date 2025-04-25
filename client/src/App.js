@@ -2,10 +2,11 @@
 import React from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 
-import LoginPage      from './pages/login'
-import RegisterPage   from './pages/register'
-import ClockPage      from './pages/clock'
-import DashboardPage  from './pages/dashboard'
+import LoginPage     from './pages/login'
+import RegisterPage  from './pages/register'
+import ClockPage     from './pages/clock'
+import ProfilePage   from './pages/profilepage'
+import DashboardPage from './pages/dashboard'
 import ProtectedRoute from './components/ProtectedRoute'
 
 function App() {
@@ -26,6 +27,14 @@ function App() {
           }
         />
         <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <ProfilePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/dashboard"
           element={
             <ProtectedRoute>
@@ -34,7 +43,7 @@ function App() {
           }
         />
 
-        {/* Catch‑all → redirect to /login */}
+        {/* Fallback: redirect any unknown URL to /login */}
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>

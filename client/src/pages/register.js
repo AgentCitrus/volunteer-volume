@@ -2,310 +2,219 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
+// human-friendly field labels
+const fieldLabels = {
+  firstName: 'First Name',
+  lastName: 'Last Name',
+  birthday: 'Birthday',
+  street: 'Street',
+  city: 'City',
+  state: 'State',
+  phoneNumber: 'Phone Number',
+  preferredContact: 'Preferred Contact',
+  languagesSpoken: 'Languages Spoken',
+  howHeard: 'How You Heard About Us',
+  otherOrganizations: 'Other Organizations',
+  disabilities: 'Disabilities',
+  email: 'Email',
+  password: 'Password',
+  'emergencyContact.name': 'Emergency Contact Name',
+  'emergencyContact.phone': 'Emergency Contact Phone',
+  'emergencyContact.relationship': 'Emergency Contact Relationship'
+}
+
+// format raw Mongoose error messages into something friendlier
+function formatError(field, msg) {
+  if (/required/i.test(msg)) {
+    return `${fieldLabels[field]} is required.`
+  }
+  const minMatch = msg.match(/Minimum characters is (\d+)/)
+  if (minMatch) {
+    return `${fieldLabels[field]} must be at least ${minMatch[1]} characters.`
+  }
+  const maxMatch = msg.match(/Max characters is (\d+)/)
+  if (maxMatch) {
+    return `${fieldLabels[field]} must be at most ${maxMatch[1]} characters.`
+  }
+  // fallback to the raw message
+  return msg
+}
+
 export default function RegisterPage() {
-  const [form, setForm] = useState({
-    firstName: '',
-    lastName: '',
-    birthday: '',
-    street: '',
-    city: '',
-    state: '',
-    phoneNumber: '',
-    preferredContact: 'email',
-    languagesSpoken: '',
-    howHeard: '',
-    otherOrganizations: '',
-    disabilities: '',
-    emergencyName: '',
-    emergencyPhone: '',
-    emergencyRelationship: '',
-    email: '',
-    password: ''
-  })
-  const [error, setError] = useState('')
   const navigate = useNavigate()
+  const [form, setForm] = useState({
+    firstName:'', lastName:'', birthday:'',
+    street:'', city:'', state:'',
+    phoneNumber:'', preferredContact:'',
+    languagesSpoken:'', howHeard:'',
+    otherOrganizations:'', disabilities:'',
+    emergencyContact:{ name:'', phone:'', relationship:'' },
+    email:'', password:''
+  })
+  const [errors, setErrors]   = useState({})
+  const [loading, setLoading] = useState(false)
 
   const handleChange = e => {
-    setForm(prev => ({ ...prev, [e.target.name]: e.target.value }))
-    setError('')
+    const { name, value } = e.target
+    if (name.startsWith('emergencyContact.')) {
+      const key = name.split('.')[1]
+      setForm(f => ({
+        ...f,
+        emergencyContact: { ...f.emergencyContact, [key]: value }
+      }))
+    } else {
+      setForm(f => ({ ...f, [name]: value }))
+    }
+    setErrors({})
   }
 
   const handleSubmit = async e => {
     e.preventDefault()
-    setError('')
-
-    const payload = {
-      firstName: form.firstName,
-      lastName: form.lastName,
-      birthday: form.birthday,
-      street: form.street,
-      city: form.city,
-      state: form.state,
-      phoneNumber: form.phoneNumber,
-      preferredContact: form.preferredContact,
-      languagesSpoken: form.languagesSpoken
-        .split(',')
-        .map(s => s.trim())
-        .filter(Boolean),
-      howHeard: form.howHeard,
-      otherOrganizations: form.otherOrganizations
-        .split(',')
-        .map(s => s.trim())
-        .filter(Boolean),
-      disabilities: form.disabilities,
-      emergencyContact: {
-        name: form.emergencyName,
-        phone: form.emergencyPhone,
-        relationship: form.emergencyRelationship
-      },
-      email: form.email,
-      password: form.password
-    }
+    setLoading(true)
+    setErrors({})
 
     try {
       const res = await fetch('http://localhost:5001/api/auth/register', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        headers: { 'Content-Type':'application/json' },
+        body: JSON.stringify(form)
       })
+      const data = await res.json()
       if (res.ok) {
-        alert('Account created! Please sign in.')
-        navigate('/login')
+        return navigate('/login')
+      }
+
+      const errText = data.error || ''
+      if (/validation failed/i.test(errText)) {
+        // parse fields
+        const tail = errText.split(/validation failed:?/i)[1] || ''
+        const parts = tail.split(/,\s*/)
+        const fieldErrors = {}
+        parts.forEach(p => {
+          const [key, ...rest] = p.split(/: (.+)/)
+          if (key && rest.length) {
+            fieldErrors[key.trim()] = rest.join(': ').trim()
+          }
+        })
+        setErrors(fieldErrors)
       } else {
-        const data = await res.json()
-        setError(data.error || `Error ${res.status}`)
+        setErrors({ _global: errText })
       }
     } catch {
-      setError('Network error. Please try again.')
+      setErrors({ _global: 'Network error. Please try again.' })
     }
+    setLoading(false)
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-      <div className="w-full max-w-md bg-white p-6 rounded shadow">
-        <h2 className="text-2xl font-semibold mb-4 text-center">Create Account</h2>
-
-        {error && (
-          <p className="mb-4 text-red-600 text-center">{error}</p>
+    <div className="min-h-screen flex items-start justify-center bg-gray-50 p-6">
+      <div className="w-full max-w-xl bg-white p-6 rounded shadow">
+        <h1 className="text-2xl font-bold mb-4">Create Account</h1>
+        {errors._global && (
+          <p className="text-red-500 text-sm mb-4">{errors._global}</p>
         )}
-
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Profile Fields */}
-          <div>
-            <label className="block text-sm font-medium">First Name</label>
-            <input
-              name="firstName"
-              value={form.firstName}
-              onChange={handleChange}
-              className="mt-1 block w-full border rounded px-3 py-2"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium">Last Name</label>
-            <input
-              name="lastName"
-              value={form.lastName}
-              onChange={handleChange}
-              className="mt-1 block w-full border rounded px-3 py-2"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium">Birthday (YYYY-MM-DD)</label>
-            <input
-              name="birthday"
-              type="date"
-              value={form.birthday}
-              onChange={handleChange}
-              className="mt-1 block w-full border rounded px-3 py-2"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium">Street</label>
-            <input
-              name="street"
-              value={form.street}
-              onChange={handleChange}
-              className="mt-1 block w-full border rounded px-3 py-2"
-              required
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium">City</label>
+          {[
+            'firstName','lastName','birthday',
+            'street','city','state',
+            'phoneNumber','preferredContact',
+            'languagesSpoken','howHeard',
+            'disabilities'
+          ].map(name => (
+            <div key={name}>
+              <label className="block font-medium">{fieldLabels[name]}</label>
               <input
-                name="city"
-                value={form.city}
+                name={name}
+                type={name==='birthday'?'date':'text'}
+                value={form[name]}
                 onChange={handleChange}
-                className="mt-1 block w-full border rounded px-3 py-2"
-                required
+                className="mt-1 w-full border rounded p-2"
               />
+              {errors[name] && (
+                <p className="text-red-500 text-sm mt-1">
+                  {formatError(name, errors[name])}
+                </p>
+              )}
             </div>
-            <div>
-              <label className="block text-sm font-medium">State</label>
-              <input
-                name="state"
-                value={form.state}
-                onChange={handleChange}
-                className="mt-1 block w-full border rounded px-3 py-2"
-                required
-              />
-            </div>
-          </div>
+          ))}
 
           <div>
-            <label className="block text-sm font-medium">Phone Number</label>
-            <input
-              name="phoneNumber"
-              value={form.phoneNumber}
-              onChange={handleChange}
-              className="mt-1 block w-full border rounded px-3 py-2"
-              placeholder="1234567890"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium">
-              Preferred Contact Method
-            </label>
-            <select
-              name="preferredContact"
-              value={form.preferredContact}
-              onChange={handleChange}
-              className="mt-1 block w-full border rounded px-3 py-2"
-            >
-              <option value="email">Email</option>
-              <option value="phone">Phone</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium">
-              Languages Spoken (comma-separated)
-            </label>
-            <input
-              name="languagesSpoken"
-              value={form.languagesSpoken}
-              onChange={handleChange}
-              className="mt-1 block w-full border rounded px-3 py-2"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium">How Did You Hear About Us?</label>
-            <input
-              name="howHeard"
-              value={form.howHeard}
-              onChange={handleChange}
-              className="mt-1 block w-full border rounded px-3 py-2"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium">
-              Other Organizations (comma-separated)
-            </label>
-            <input
+            <label className="block font-medium">{fieldLabels.otherOrganizations}</label>
+            <textarea
               name="otherOrganizations"
               value={form.otherOrganizations}
               onChange={handleChange}
-              className="mt-1 block w-full border rounded px-3 py-2"
+              className="mt-1 w-full border rounded p-2 h-20"
             />
+            {errors.otherOrganizations && (
+              <p className="text-red-500 text-sm mt-1">
+                {formatError('otherOrganizations', errors.otherOrganizations)}
+              </p>
+            )}
           </div>
 
-          <div>
-            <label className="block text-sm font-medium">Disabilities</label>
-            <input
-              name="disabilities"
-              value={form.disabilities}
-              onChange={handleChange}
-              className="mt-1 block w-full border rounded px-3 py-2"
-            />
-          </div>
-
-          <fieldset className="space-y-2">
-            <legend className="text-sm font-medium">Emergency Contact</legend>
-            <div>
-              <label className="block text-sm">Name</label>
-              <input
-                name="emergencyName"
-                value={form.emergencyName}
-                onChange={handleChange}
-                className="mt-1 block w-full border rounded px-3 py-2"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm">Phone</label>
-              <input
-                name="emergencyPhone"
-                value={form.emergencyPhone}
-                onChange={handleChange}
-                className="mt-1 block w-full border rounded px-3 py-2"
-                placeholder="1234567890"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm">Relationship</label>
-              <input
-                name="emergencyRelationship"
-                value={form.emergencyRelationship}
-                onChange={handleChange}
-                className="mt-1 block w-full border rounded px-3 py-2"
-                required
-              />
-            </div>
+          <fieldset className="border p-4 rounded space-y-2">
+            <legend className="font-medium">Emergency Contact</legend>
+            {['name','phone','relationship'].map(key => {
+              const fld = `emergencyContact.${key}`
+              return (
+                <div key={key}>
+                  <label className="block font-medium">{fieldLabels[fld]}</label>
+                  <input
+                    name={fld}
+                    value={form.emergencyContact[key]}
+                    onChange={handleChange}
+                    className="mt-1 w-full border rounded p-2"
+                  />
+                  {errors[fld] && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {formatError(fld, errors[fld])}
+                    </p>
+                  )}
+                </div>
+              )
+            })}
           </fieldset>
 
-          {/* Auth Fields */}
           <div>
-            <label className="block text-sm font-medium">Email</label>
+            <label className="block font-medium">{fieldLabels.email}</label>
             <input
               name="email"
               type="email"
               value={form.email}
               onChange={handleChange}
-              className="mt-1 block w-full border rounded px-3 py-2"
-              required
+              className="mt-1 w-full border rounded p-2"
             />
+            {errors.email && (
+              <p className="text-red-500 text-sm mt-1">
+                {formatError('email', errors.email)}
+              </p>
+            )}
           </div>
 
           <div>
-            <label className="block text-sm font-medium">Password</label>
+            <label className="block font-medium">{fieldLabels.password}</label>
             <input
               name="password"
               type="password"
               value={form.password}
               onChange={handleChange}
-              className="mt-1 block w-full border rounded px-3 py-2"
-              required
+              className="mt-1 w-full border rounded p-2"
             />
+            {errors.password && (
+              <p className="text-red-500 text-sm mt-1">
+                {formatError('password', errors.password)}
+              </p>
+            )}
           </div>
 
-          {/* Actions */}
-          <div className="flex justify-between items-center pt-4">
-            <button
-              type="button"
-              onClick={() => navigate('/login')}
-              className="text-blue-600 hover:underline"
-            >
-              Back to Sign In
-            </button>
-            <button
-              type="submit"
-              className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-            >
-              Create Account
-            </button>
-          </div>
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+          >
+            {loading ? 'Creating…' : 'Create Account'}
+          </button>
         </form>
       </div>
     </div>
