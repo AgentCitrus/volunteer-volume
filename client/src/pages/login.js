@@ -1,7 +1,5 @@
-// client/src/pages/login.js
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import HamburgerMenu from '../components/HamburgerMenu'
 
 export default function LoginPage() {
   const navigate = useNavigate()
@@ -64,7 +62,6 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
       <div className="w-full max-w-md bg-white p-6 rounded shadow">
-        <HamburgerMenu />
         <h1 className="text-2xl font-bold mb-4">Sign In</h1>
         {error && <p className="text-red-600 text-sm mb-2">{error}</p>}
 
@@ -91,9 +88,10 @@ export default function LoginPage() {
               className="mt-1 w-full border rounded p-2 focus:ring-2 focus:ring-blue-400"
             />
           </div>
+
           <button
             type="submit"
-            className="w-full py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            className="w-full py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
           >
             Login
           </button>

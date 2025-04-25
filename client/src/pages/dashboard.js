@@ -1,4 +1,3 @@
-// client/src/pages/dashboard.js
 import React, { useState, useEffect } from 'react'
 import HamburgerMenu from '../components/HamburgerMenu'
 
@@ -11,17 +10,29 @@ export default function DashboardPage() {
     if (!token) return
     fetch('http://localhost:5001/api/logdata', {
       headers: {
-        'Content-Type': 'application/json',
-        Authorization:   `Bearer ${token}`
+        'Content-Type':  'application/json',
+        'Authorization': `Bearer ${token}`
       },
       credentials: 'include'
     })
       .then(r => r.json())
-      .then(setLogs)
-      .catch(console.error)
+      .then(data => setLogs(Array.isArray(data) ? data : []))
+      .catch(err => {
+        console.error('Failed to load logs:', err)
+        setLogs([])
+      })
   }, [token])
 
-  const fl = logs
+  const cellStyle = { border:'1px solid #ccc', padding:'8px', verticalAlign:'top' }
+  const noRows    = () => (
+    <tr>
+      <td colSpan="3" style={{ ...cellStyle, textAlign:'center', color:'#777' }}>
+        No results found.
+      </td>
+    </tr>
+  )
+
+  const filtered = logs
     .filter(l => l.user)
     .filter(l => {
       const t = filter.toLowerCase()
@@ -31,28 +42,6 @@ export default function DashboardPage() {
         l.user.lastName.toLowerCase().includes(t)
       )
     })
-
-  const noRows = () => (
-    <tr>
-      <td
-        colSpan="3"
-        style={{
-          border: '1px solid #ccc',
-          padding: '8px',
-          textAlign: 'center',
-          color: '#777'
-        }}
-      >
-        No results found.
-      </td>
-    </tr>
-  )
-
-  const cellStyle = {
-    border: '1px solid #ccc',
-    padding: '8px',
-    verticalAlign: 'top'
-  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -68,36 +57,39 @@ export default function DashboardPage() {
         />
 
         <div className="overflow-x-auto">
-          <table
-            style={{ borderCollapse: 'collapse', width: '100%' }}
-          >
-            <thead style={{ backgroundColor: '#f3f4f6' }}>
+          <table style={{ borderCollapse:'collapse', width:'100%' }}>
+            <thead style={{ backgroundColor:'#f3f4f6' }}>
               <tr>
-                {['Check In', 'Check Out', 'Tasks'].map(h => (
-                  <th key={h} style={{ ...cellStyle, fontWeight: '600', textAlign: 'left' }}>
+                {['Check In','Check Out','Tasks'].map(h => (
+                  <th
+                    key={h}
+                    style={{ ...cellStyle, fontWeight:'600', textAlign:'left' }}
+                  >
                     {h}
                   </th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {fl.length > 0 ? (
-                fl.map(l => (
-                  <tr key={l._id} style={{ backgroundColor: '#fff' }}>
-                    <td style={cellStyle}>
-                      {new Date(l.checkIn).toLocaleString()}
-                    </td>
-                    <td style={cellStyle}>
-                      {new Date(l.checkOut).toLocaleString()}
-                    </td>
-                    <td style={{ ...cellStyle, wordBreak: 'break-word' }}>
-                      {l.tasksDesc}
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                noRows()
-              )}
+              {filtered.length > 0
+                ? filtered.map(l => (
+                    <tr key={l._id}>
+                      <td style={cellStyle}>
+                        {l.checkIn
+                          ? new Date(l.checkIn).toLocaleString()
+                          : '—'}
+                      </td>
+                      <td style={cellStyle}>
+                        {l.checkOut
+                          ? new Date(l.checkOut).toLocaleString()
+                          : '—'}
+                      </td>
+                      <td style={{ ...cellStyle, wordBreak:'break-word' }}>
+                        {l.tasksDesc}
+                      </td>
+                    </tr>
+                  ))
+                : noRows()}
             </tbody>
           </table>
         </div>

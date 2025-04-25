@@ -1,3 +1,4 @@
+// client/src/App.js
 import React from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 
@@ -7,46 +8,54 @@ import ClockPage          from './pages/clock'
 import ProfilePage        from './pages/profilepage'
 import DashboardPage      from './pages/dashboard'
 import AdminPage          from './pages/admin'
-import ResetPasswordPage  from './pages/ResetPasswordPage'  // <— Note the filename
+import ResetPasswordPage  from './pages/ResetPasswordPage'
 import ProtectedRoute     from './components/ProtectedRoute'
 
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Public */}
-        <Route path="/login"             element={<LoginPage />} />
-        <Route path="/register"          element={<RegisterPage />} />
+        {/* Public routes */}
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
         <Route
           path="/reset-password/:token"
           element={<ResetPasswordPage />}
         />
 
-        {/* Authenticated */}
+        {/* Authenticated routes */}
         <Route
           path="/clock"
           element={
-            <ProtectedRoute><ClockPage /></ProtectedRoute>
+            <ProtectedRoute>
+              <ClockPage />
+            </ProtectedRoute>
           }
         />
         <Route
           path="/dashboard"
           element={
-            <ProtectedRoute><DashboardPage /></ProtectedRoute>
+            <ProtectedRoute>
+              <DashboardPage />
+            </ProtectedRoute>
           }
         />
         <Route
           path="/profilepage"
           element={
-            <ProtectedRoute><ProfilePage /></ProtectedRoute>
+            <ProtectedRoute>
+              <ProfilePage />
+            </ProtectedRoute>
           }
         />
 
-        {/* Admin only */}
+        {/* Admin-only route */}
         <Route
           path="/admin"
           element={
-            <ProtectedRoute adminOnly><AdminPage /></ProtectedRoute>
+            <ProtectedRoute adminOnly>
+              <AdminPage />
+            </ProtectedRoute>
           }
         />
 

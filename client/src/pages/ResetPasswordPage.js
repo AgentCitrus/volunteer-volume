@@ -1,7 +1,5 @@
-// client/src/pages/ResetPasswordPage.js
 import React, { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import HamburgerMenu from '../components/HamburgerMenu'
 
 export default function ResetPasswordPage() {
   const { token } = useParams()
@@ -36,7 +34,6 @@ export default function ResetPasswordPage() {
       const data = await res.json()
       if (res.ok) {
         setSuccess(data.message)
-        // auto‐redirect to login after success
         setTimeout(() => navigate('/login'), 2000)
       } else {
         setError(data.error || 'Reset failed.')
@@ -50,7 +47,6 @@ export default function ResetPasswordPage() {
   return (
     <div className="min-h-screen bg-gray-50 p-4 flex items-center justify-center">
       <div className="w-full max-w-md bg-white p-6 rounded shadow space-y-4">
-        <HamburgerMenu />
         <h1 className="text-2xl font-bold">Reset Password</h1>
 
         {error && <p className="text-red-600 text-sm">{error}</p>}
@@ -80,7 +76,7 @@ export default function ResetPasswordPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            className="w-full py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
           >
             {loading ? 'Resetting…' : 'Reset Password'}
           </button>
