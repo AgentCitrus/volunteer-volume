@@ -1,33 +1,40 @@
 // server/index.js
 require('dotenv').config()
 const express      = require('express')
+const mongoose     = require('mongoose')
 const cors         = require('cors')
 const cookieParser = require('cookie-parser')
 
 // Import all your route modules
-const authRoutes     = require('./routes/auth')
-const userdataRoutes = require('./routes/userdata')
-const logdataRoutes  = require('./routes/logdata')
+const authRoutes      = require('./routes/auth')
+const userDataRoutes  = require('./routes/usersdata') // this file handles BOTH userdata & logdata
 
 const app = express()
 
-// CORS: allow your React front-end to talk to this server
+// Connect to MongoDB
+mongoose
+  .connect(process.env.MONG_URI, {
+    useNewUrlParser:    true,
+    useUnifiedTopology: true
+  })
+  .then(() => console.log('✅ MongoDB connected'))
+  .catch(err => console.error('❌ MongoDB connection error:', err))
+
+// Middleware
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    origin:      process.env.FRONTEND_URL || 'http://localhost:3000',
     credentials: true
   })
 )
-
-// Parse JSON bodies + cookies
 app.use(express.json())
 app.use(cookieParser())
 
-// Mount the routes
-app.use('/api/auth',     authRoutes)
-app.use('/api/userdata', userdataRoutes)
-app.use('/api/logdata',  logdataRoutes)
+// Mount your routes
+app.use('/api/auth', authRoutes)     // handles /api/auth/...
+app.use('/api',      userDataRoutes) // handles both /api/userdata and /api/logdata
 
+// Start server
 const PORT = process.env.PORT || 5001
 app.listen(PORT, () => {
   console.log(`🚀 Server listening on port ${PORT}`)
