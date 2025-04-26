@@ -32,9 +32,11 @@ export default function ViewSchedulePage() {
               <li key={s._id} className="p-4 bg-gray-100 rounded">
                 <p>
                   <strong>
-                    {new Date(s.start).toLocaleString()} –{' '}
-                    {new Date(s.end).toLocaleString()}
+                    {s.user.firstName + " " + s.user.lastName + ": "}
                   </strong>
+                  
+                  {new Date(s.start).toLocaleString()} –{' '}
+                  {new Date(s.end).toLocaleString()}
                 </p>
               </li>
             ))}
