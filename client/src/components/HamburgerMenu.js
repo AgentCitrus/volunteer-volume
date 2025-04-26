@@ -33,9 +33,15 @@ export default function HamburgerMenu() {
   const tabs = [
     { name: 'Time Clock', path: '/clock' },
     { name: 'Dashboard',  path: '/dashboard' },
-    { name: 'My Profile', path: '/userdata' }
+    { name: 'My Profile', path: '/userdata' },
+    { name: 'My Schedule',   path: '/viewschedule' }
   ];
-  if (role === 'admin') tabs.push({ name: 'Admin', path: '/admin' });
+  if (role === 'admin') {
+    tabs.push(
+      { name: 'Assign Schedule', path: '/assignschedule' },
+    )
+    tabs.push({ name: 'Admin', path: '/admin' })
+  }
 
   const logout = () => {
     localStorage.removeItem('token');

@@ -11,6 +11,9 @@ import DashboardPage      from './pages/dashboard';
 import ProfilePage        from './pages/profilepage';
 import AdminPage          from './pages/admin';
 
+import ViewSchedulePage   from './pages/viewschedule.js';
+import AssignSchedulePage from './pages/assignschedule.js';
+
 import ProtectedRoute     from './components/ProtectedRoute';
 
 export default function App() {
@@ -48,6 +51,14 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/viewschedule"
+          element={
+            <ProtectedRoute>
+              <ViewSchedulePage />
+            </ProtectedRoute>
+          }
+        />
 
         {/* admin only */}
         <Route
@@ -55,6 +66,15 @@ export default function App() {
           element={
             <ProtectedRoute adminOnly>
               <AdminPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/assignschedule"
+          element={
+            <ProtectedRoute adminOnly>
+              <AssignSchedulePage />
             </ProtectedRoute>
           }
         />

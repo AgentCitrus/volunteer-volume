@@ -9,6 +9,7 @@ const cookieParser = require('cookie-parser')
 
 const authRoutes      = require('./routes/auth')
 const usersdataRoutes = require('./routes/usersdata')
+const scheduleRoutes = require('./routes/schedules')
 
 const app = express()
 
@@ -29,6 +30,7 @@ app.use(cookieParser())
 // 4. Mount your routes
 app.use('/api/auth', authRoutes)
 app.use('/api',      usersdataRoutes)
+app.use('/api/schedules', scheduleRoutes)
 
 // 5. Connect to MongoDB & start the server
 const PORT = process.env.PORT || 5001
