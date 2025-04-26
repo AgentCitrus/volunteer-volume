@@ -1,16 +1,12 @@
-// server/tests/bruteForce.test.js
-/* eslint-env jest */
 const request  = require('supertest')
 const fs       = require('fs')
 const path     = require('path')
 const mongoose = require('mongoose')
-const app      = require('../app')    // bare Express instance
+const app      = require('../app') 
 
-// total attempts and batch size
 const ATTEMPTS   = 250
-const BATCH_SIZE = 25
+const BATCH_SIZE = 30
 
-// generate a random alphanumeric password of length between min and max
 function randomPwd(min = 8, max = 20) {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
   const length = Math.floor(Math.random() * (max - min + 1)) + min
@@ -58,11 +54,9 @@ describe(
         results.push(...batchResults)
       }
 
-      // log sum of individual latencies
       const totalMs = results.reduce((sum, r) => sum + r.ms, 0)
       console.log(`Σ individual latencies: ${totalMs} ms`)
 
-      // write out the CSV
       const header = 'attempt,status,ms'
       const lines  = results.map(r => `${r.attempt},${r.status},${r.ms}`)
       const out    = [header, ...lines].join('\n')
@@ -71,11 +65,11 @@ describe(
       console.log(`📄  bruteForce.csv written (${results.length} rows)`)
 
       expect(results).toHaveLength(ATTEMPTS)
-    }, 60000)  // allow up to 60s
+    }, 60000)
   }
 )
 
-// disconnect mongoose so Jest exits cleanly
+
 afterAll(async () => {
   await mongoose.disconnect()
 })
