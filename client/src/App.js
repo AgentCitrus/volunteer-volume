@@ -14,6 +14,9 @@ import AdminPage          from './pages/admin';
 import ViewSchedulePage   from './pages/viewschedule.js';
 import AssignSchedulePage from './pages/assignschedule.js';
 
+import MessagesPage       from './pages/messages.js';
+import SendMessagePage    from './pages/sendmessages.js';
+
 import ProtectedRoute     from './components/ProtectedRoute';
 
 export default function App() {
@@ -60,6 +63,15 @@ export default function App() {
           }
         />
 
+        <Route
+          path="/messages"
+          element={
+            <ProtectedRoute>
+              <MessagesPage />
+            </ProtectedRoute>
+          }
+        />
+
         {/* admin only */}
         <Route
           path="/admin"
@@ -75,6 +87,15 @@ export default function App() {
           element={
             <ProtectedRoute adminOnly>
               <AssignSchedulePage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/sendmessages"
+          element={
+            <ProtectedRoute>
+              <SendMessagePage />
             </ProtectedRoute>
           }
         />

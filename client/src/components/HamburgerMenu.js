@@ -34,13 +34,15 @@ export default function HamburgerMenu() {
     { name: 'Time Clock', path: '/clock' },
     { name: 'Dashboard',  path: '/dashboard' },
     { name: 'My Profile', path: '/userdata' },
-    { name: 'My Schedule',   path: '/viewschedule' }
+    { name: 'My Schedule',   path: '/viewschedule' },
+    { name: 'View Messages',  path: '/messages'}
   ];
   if (role === 'admin') {
     tabs.push(
       { name: 'Assign Schedule', path: '/assignschedule' },
     )
     tabs.push({ name: 'Admin', path: '/admin' })
+    tabs.push({ name: 'Send Messages',  path: '/sendmessages'})
   }
 
   const logout = () => {
